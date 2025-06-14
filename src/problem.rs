@@ -19,22 +19,22 @@ pub struct Problem {
 }
 
 impl Problem {
-    pub fn new<S1: Into<String>, S2: Into<String>>(code: S1, title: S2) -> Self {
+    pub fn new<S1: ToString, S2: ToString>(code: S1, title: S2) -> Self {
         Self {
-            code: code.into(),
-            title: title.into(),
+            code: code.to_string(),
+            title: title.to_string(),
             detail: None,
             pointer: None,
         }
     }
 
-    pub fn detail<S: Into<String>>(mut self, value: S) -> Self {
-        self.detail = Some(value.into());
+    pub fn detail<S: ToString>(mut self, value: S) -> Self {
+        self.detail = Some(value.to_string());
         self
     }
 
-    pub fn pointer<S: Into<String>>(mut self, value: S) -> Self {
-        self.pointer = Some(value.into());
+    pub fn pointer<S: ToString>(mut self, value: S) -> Self {
+        self.pointer = Some(value.to_string());
         self
     }
 }

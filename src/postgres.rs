@@ -9,8 +9,8 @@ pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 ///
 /// Connection string should be in the form:
 /// `postgres://username:password@host:port`
-pub async fn setup_connection_pool(
-    connection_string: String,
+pub async fn setup_connection_pool<S: ToString>(
+    connection_string: S,
 ) -> Result<ConnectionPool, SetupPostgresError> {
     let manager = PostgresConnectionManager::new_from_stringlike(connection_string, NoTls)
         .map_err(SetupPostgresError::ConnectionString)?;
