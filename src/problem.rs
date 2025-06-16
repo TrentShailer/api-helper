@@ -19,6 +19,26 @@ pub struct Problem {
 }
 
 impl Problem {
+    pub fn invalid_field<S1: ToString, S2: ToString>(detail: S1, pointer: S2) -> Self {
+        Self {
+            code: String::from("invalid-field"),
+            title: String::from("Your request contained invalid fields."),
+            detail: Some(detail.to_string()),
+            pointer: Some(pointer.to_string()),
+        }
+    }
+
+    pub fn server_error() -> Self {
+        Self {
+            code: String::from("server-error"),
+            title: String::from(
+                "The server encountered an unexpected error while processing your request.",
+            ),
+            detail: None,
+            pointer: None,
+        }
+    }
+
     pub fn new<S1: ToString, S2: ToString>(code: S1, title: S2) -> Self {
         Self {
             code: code.to_string(),
@@ -49,6 +69,26 @@ pub struct ErrorResponse {
 
     /// The list of problems to relay to the caller.
     pub problems: Vec<Problem>,
+}
+
+impl ErrorResponse {
+    pub fn new(status: StatusCode, problems: Vec<Problem>) -> Self {
+        Self { status, problems }
+    }
+
+    pub fn single(status: StatusCode, problem: Problem) -> Self {
+        Self {
+            status,
+            problems: vec![problem],
+        }
+    }
+
+    pub fn server_error() -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            problems: vec![Problem::server_error()],
+        }
+    }
 }
 
 impl IntoResponse for ErrorResponse {
