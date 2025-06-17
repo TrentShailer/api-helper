@@ -89,6 +89,16 @@ impl ErrorResponse {
             problems: vec![Problem::server_error()],
         }
     }
+
+    pub fn unuathenticated() -> Self {
+        Self {
+            status: StatusCode::UNAUTHORIZED,
+            problems: vec![Problem::new(
+                "unauthenticated",
+                "This request requires authentication",
+            )],
+        }
+    }
 }
 
 impl IntoResponse for ErrorResponse {

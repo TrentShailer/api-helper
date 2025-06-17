@@ -8,6 +8,7 @@ version = "0.1.0"
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["json", "macros"] }
+tokio = { version = "1.45", default-features = false, features = ["sync"] }
 
 tracing = "0.1"
 
@@ -19,6 +20,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 thiserror = "2"
+
+jsonwebtoken = { version = "9.3", features = ["use_pem"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 [workspace.lints.rust]
 "deprecated_in_future" = "warn"
