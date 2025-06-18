@@ -1,6 +1,6 @@
+mod claims;
 mod encoder;
 mod jwks;
-mod token;
 
 use core::str::FromStr;
 use std::sync::Arc;
@@ -15,9 +15,9 @@ use tokio::sync::Mutex;
 
 use crate::{ErrorResponse, Problem, ReportUnexpected};
 
+pub use claims::Claims;
 pub use encoder::{EncodeJwtError, EncodeJwtErrorKind, JwtEncoder};
 pub use jwks::{FetchJwksError, FetchJwksErrorKind, GetJwkError, GetJwkErrorKind, Jwks};
-pub use token::Token;
 
 pub trait JwksState {
     fn jwks(&self) -> Arc<Mutex<Jwks>>;
@@ -73,7 +73,12 @@ where
         let algorithm =
             Algorithm::from_str(&jwk.common.key_algorithm.unwrap().to_string()).unwrap(); // Guaranteed by JWKS `is_supported`.
 
-        let token = jsonwebtoken::decode::<T>(token, decoding_key, &Validation::new(algorithm))
+        let mut validation = Validation::new(algorithm);
+        validation.set_required_spec_claims(&["exp", "nbf", "sub"]);
+        validation.validate_nbf = true;
+        validation.validate_exp = true;
+
+        let token = jsonwebtoken::decode::<T>(token, decoding_key, &validation)
             .map_err(|_| ErrorResponse::unuathenticated())?;
 
         Ok(Jwt(token))

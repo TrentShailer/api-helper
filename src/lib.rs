@@ -9,8 +9,8 @@ mod report;
 pub use api_key::{ApiKey, ApiKeyConfig, ApiKeyState};
 pub use json::Json;
 pub use jwt::{
-    EncodeJwtError, EncodeJwtErrorKind, FetchJwksError, FetchJwksErrorKind, GetJwkError,
-    GetJwkErrorKind, Jwks, JwksState, Jwt, JwtEncoder, Token,
+    Claims, EncodeJwtError, EncodeJwtErrorKind, FetchJwksError, FetchJwksErrorKind, GetJwkError,
+    GetJwkErrorKind, Jwks, JwksState, Jwt, JwtEncoder,
 };
 pub use postgres::{ConnectionPool, SetupPostgresError, setup_connection_pool};
 pub use postgres_types_jiff_0_2::{SqlDate, SqlDateTime, SqlTime, SqlTimestamp};
