@@ -10,6 +10,10 @@ version = "0.1.0"
 axum = { version = "0.8", default-features = false, features = ["json", "macros"] }
 tokio = { version = "1.45", default-features = false, features = ["sync"] }
 
+bytes = "1.0"
+jiff = { version = "0.2", features = ["serde"] }
+postgres-protocol = "0.6.8"
+
 tracing = "0.1"
 
 bb8 = "0.9"

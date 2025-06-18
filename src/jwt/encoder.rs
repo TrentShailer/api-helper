@@ -3,6 +3,7 @@ use core::fmt;
 use jsonwebtoken::{Algorithm, EncodingKey, Header, errors::ErrorKind};
 use serde::Serialize;
 
+#[derive(Clone)]
 pub struct JwtEncoder {
     pub kid: String,
     pub encoding_key: EncodingKey,
