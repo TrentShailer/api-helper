@@ -1,3 +1,4 @@
+mod api_key;
 mod json;
 mod jwt;
 mod postgres;
@@ -5,6 +6,7 @@ mod postgres_types_jiff_0_2;
 mod problem;
 mod report;
 
+pub use api_key::{ApiKey, ApiKeyConfig, ApiKeyState};
 pub use json::Json;
 pub use jwt::{
     EncodeJwtError, EncodeJwtErrorKind, FetchJwksError, FetchJwksErrorKind, GetJwkError,
