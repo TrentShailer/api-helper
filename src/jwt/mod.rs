@@ -1,4 +1,6 @@
+mod encoder;
 mod jwks;
+mod token;
 
 use core::str::FromStr;
 use std::sync::Arc;
@@ -13,7 +15,9 @@ use tokio::sync::Mutex;
 
 use crate::{ErrorResponse, Problem, ReportUnexpected};
 
+pub use encoder::{EncodeJwtError, EncodeJwtErrorKind, JwtEncoder};
 pub use jwks::{FetchJwksError, FetchJwksErrorKind, GetJwkError, GetJwkErrorKind, Jwks};
+pub use token::Token;
 
 pub trait JwksState {
     fn jwks(&self) -> Arc<Mutex<Jwks>>;
