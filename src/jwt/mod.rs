@@ -10,7 +10,6 @@ use axum::{
     http::{StatusCode, request::Parts},
 };
 use jsonwebtoken::{Algorithm, TokenData, Validation};
-use serde::de::DeserializeOwned;
 use tokio::sync::Mutex;
 
 use crate::{ErrorResponse, Problem, ReportUnexpected};
@@ -23,12 +22,11 @@ pub trait JwksState {
     fn jwks(&self) -> Arc<Mutex<Jwks>>;
 }
 
-pub struct Jwt<T: DeserializeOwned>(pub TokenData<T>);
+pub struct Jwt(pub TokenData<Claims>);
 
-impl<S, T> FromRequestParts<S> for Jwt<T>
+impl<S> FromRequestParts<S> for Jwt
 where
     S: Send + Sync + JwksState,
-    T: DeserializeOwned,
 {
     type Rejection = ErrorResponse;
 
@@ -78,7 +76,7 @@ where
         validation.validate_nbf = true;
         validation.validate_exp = true;
 
-        let token = jsonwebtoken::decode::<T>(token, decoding_key, &validation)
+        let token = jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)
             .map_err(|_| ErrorResponse::unuathenticated())?;
 
         Ok(Jwt(token))
