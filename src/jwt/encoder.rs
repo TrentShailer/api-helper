@@ -10,31 +10,27 @@ pub struct JwtEncoder {
     pub encoding_key: EncodingKey,
     pub algorithm: Algorithm,
     pub issuer: String,
-    pub expires_in_seconds: u64,
+    pub valid_for: Duration,
 }
 
 impl JwtEncoder {
-    pub fn encode(&self, subject: String) -> Result<String, EncodeJwtError> {
+    pub fn encode(
+        &self,
+        subject: String,
+        custom_duration: Option<Duration>,
+    ) -> Result<String, EncodeJwtError> {
         let mut header = Header::new(self.algorithm);
         header.kid = Some(self.kid.clone());
 
-        let exp = (jiff::Timestamp::now() + Duration::from_secs(self.expires_in_seconds))
+        let valid_for = custom_duration.unwrap_or(self.valid_for);
+
+        let exp = (jiff::Timestamp::now() + valid_for)
             .as_millisecond()
             .try_into()
             .map_err(|source| EncodeJwtError {
                 kind: EncodeJwtErrorKind::InvalidTime {
                     source,
                     claim: "exp",
-                },
-            })?;
-
-        let nbf = (jiff::Timestamp::now() - Duration::from_secs(60 * 15))
-            .as_millisecond()
-            .try_into()
-            .map_err(|source| EncodeJwtError {
-                kind: EncodeJwtErrorKind::InvalidTime {
-                    source,
-                    claim: "nbf",
                 },
             })?;
 
@@ -47,6 +43,8 @@ impl JwtEncoder {
                     claim: "iat",
                 },
             })?;
+
+        let nbf = iat;
 
         let claims = Claims {
             exp,

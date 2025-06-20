@@ -39,6 +39,15 @@ impl Problem {
         }
     }
 
+    pub fn not_found() -> Self {
+        Self {
+            code: String::from("not-found"),
+            title: String::from("The resource was not found."),
+            detail: None,
+            pointer: None,
+        }
+    }
+
     pub fn new<S1: ToString, S2: ToString>(code: S1, title: S2) -> Self {
         Self {
             code: code.to_string(),
@@ -97,6 +106,13 @@ impl ErrorResponse {
                 "unauthenticated",
                 "This request requires authentication",
             )],
+        }
+    }
+
+    pub fn not_found() -> Self {
+        Self {
+            status: StatusCode::NOT_FOUND,
+            problems: vec![Problem::not_found()],
         }
     }
 }
