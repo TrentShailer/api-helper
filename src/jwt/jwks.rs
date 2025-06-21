@@ -60,6 +60,7 @@ impl Jwks {
                 {
                     continue;
                 }
+                let kid = jwk.common.key_id.clone().unwrap();
                 let decoding_key = match DecodingKey::from_jwk(&jwk) {
                     Ok(key) => key,
                     Err(error) => {
@@ -68,10 +69,7 @@ impl Jwks {
                     }
                 };
 
-                self.cache.insert(
-                    jwk.common.key_id.clone().unwrap(),
-                    (Instant::now(), jwk, decoding_key),
-                );
+                self.cache.insert(kid, (Instant::now(), jwk, decoding_key));
             }
         }
 

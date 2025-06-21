@@ -73,11 +73,25 @@ where
 
         let mut validation = Validation::new(algorithm);
         validation.set_required_spec_claims(&["exp", "nbf", "sub"]);
-        validation.validate_nbf = true;
-        validation.validate_exp = true;
+        validation.validate_nbf = false; // Validation is done manually
+        validation.validate_exp = false; // Validation is done manually
 
         let token = jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)
+            .report_error("")
             .map_err(|_| ErrorResponse::unuathenticated())?;
+
+        // Validate NBF and exp
+        let now: usize = jiff::Timestamp::now()
+            .as_millisecond()
+            .try_into()
+            .report_error("converting now to usize")
+            .map_err(|_| ErrorResponse::server_error())?;
+        if token.claims.nbf > now + 1000 * 60 * 5 {
+            return Err(ErrorResponse::unuathenticated());
+        }
+        if token.claims.exp < now - 1000 * 60 * 5 {
+            return Err(ErrorResponse::unuathenticated());
+        }
 
         Ok(Jwt(token))
     }
