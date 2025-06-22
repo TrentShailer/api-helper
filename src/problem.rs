@@ -60,7 +60,7 @@ impl ErrorResponse {
         }
     }
 
-    pub fn not_found(pointer: Option<String>) -> Self {
+    pub fn not_found<S: ToString>(pointer: Option<S>) -> Self {
         let problems = match pointer {
             Some(pointer) => vec![Problem::pointer(pointer)],
             None => vec![],
