@@ -52,13 +52,13 @@ where
         let header = parts
             .headers
             .get(&config.header)
-            .ok_or_else(ErrorResponse::unuathenticated)?
+            .ok_or_else(ErrorResponse::unauthenticated)?
             .to_str()
-            .map_err(|_| ErrorResponse::unuathenticated())?
+            .map_err(|_| ErrorResponse::unauthenticated())?
             .to_owned();
 
         if !config.allowed_api_keys.contains(&header) {
-            return Err(ErrorResponse::unuathenticated());
+            return Err(ErrorResponse::unauthenticated());
         }
 
         Ok(ApiKey(header))

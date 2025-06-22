@@ -13,4 +13,4 @@ pub use jwt::{
 };
 pub use postgres::{ConnectionPool, SetupPostgresError, setup_connection_pool};
 pub use problem::{ErrorResponse, Problem};
-pub use report::{ReportUnexpected, report_error};
+pub use report::{InternalServerError, report_error};

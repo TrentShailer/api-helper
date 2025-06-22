@@ -1,33 +1,33 @@
 use core::{fmt::Display, panic::Location};
 
+use crate::ErrorResponse;
+
 #[track_caller]
-pub fn report_error<E: Display>(error: E, message: &str) {
-    tracing::error!("{message} [{}]: {error}", Location::caller())
+pub fn report_error<E: Display>(error: E) {
+    tracing::error!("[{}] INTERNAL SERVER ERROR: {error}", Location::caller())
 }
 
-pub trait ReportUnexpected {
+pub trait InternalServerError<T> {
     #[track_caller]
-    fn report_error(self, message: &str) -> Self;
+    fn internal_server_error(self) -> Result<T, ErrorResponse>;
 }
 
-impl<T, E: Display> ReportUnexpected for Result<T, E> {
+impl<T, E: Display> InternalServerError<T> for Result<T, E> {
     #[track_caller]
-    fn report_error(self, message: &str) -> Self {
-        if let Err(error) = self.as_ref() {
-            report_error(error, message);
-        }
-
-        self
+    fn internal_server_error(self) -> Result<T, ErrorResponse> {
+        self.map_err(|error| {
+            report_error(error);
+            ErrorResponse::internal_server_error()
+        })
     }
 }
 
-impl<T> ReportUnexpected for Option<T> {
+impl<T> InternalServerError<T> for Option<T> {
     #[track_caller]
-    fn report_error(self, message: &str) -> Self {
-        if self.is_none() {
-            report_error("was None", message);
-        }
-
-        self
+    fn internal_server_error(self) -> Result<T, ErrorResponse> {
+        self.ok_or_else(|| {
+            report_error("Option was None");
+            ErrorResponse::internal_server_error()
+        })
     }
 }

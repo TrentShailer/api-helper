@@ -7,12 +7,12 @@ use std::sync::Arc;
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
-    http::{StatusCode, request::Parts},
+    http::request::Parts,
 };
 use jsonwebtoken::{Algorithm, TokenData, Validation};
 use tokio::sync::Mutex;
 
-use crate::{ErrorResponse, Problem, ReportUnexpected};
+use crate::{ErrorResponse, InternalServerError};
 
 pub use claims::Claims;
 pub use encoder::{EncodeJwtError, EncodeJwtErrorKind, JwtEncoder};
@@ -55,29 +55,21 @@ where
         let header = parts
             .headers
             .get("Authorization")
-            .ok_or_else(ErrorResponse::unuathenticated)?;
+            .ok_or_else(ErrorResponse::unauthenticated)?;
 
-        let header = header.to_str().map_err(|_| {
-            ErrorResponse::single(
-                StatusCode::BAD_REQUEST,
-                Problem::new("invalid-header", "The request contained an invalid header.")
-                    .pointer("$.Authorization"),
-            )
-        })?;
+        let header = header
+            .to_str()
+            .map_err(|_| ErrorResponse::unauthenticated())?;
 
         if !header.starts_with("bearer ") {
-            return Err(ErrorResponse::single(
-                StatusCode::BAD_REQUEST,
-                Problem::new("invalid-header", "The request contained an invalid header.")
-                    .pointer("$.Authorization"),
-            ));
+            return Err(ErrorResponse::unauthenticated());
         }
 
         let token = &header[7..];
 
         let header =
-            jsonwebtoken::decode_header(token).map_err(|_| ErrorResponse::unuathenticated())?;
-        let kid = header.kid.ok_or_else(ErrorResponse::unuathenticated)?;
+            jsonwebtoken::decode_header(token).map_err(|_| ErrorResponse::unauthenticated())?;
+        let kid = header.kid.ok_or_else(ErrorResponse::unauthenticated)?;
 
         let jwks_mutex = state.jwks();
         let mut jwks = jwks_mutex.lock().await;
@@ -85,9 +77,8 @@ where
         let (jwk, decoding_key) = jwks
             .try_get_jwk(&kid)
             .await
-            .report_error("could not get jwk")
-            .map_err(|_| ErrorResponse::server_error())?
-            .ok_or_else(ErrorResponse::unuathenticated)?;
+            .internal_server_error()?
+            .ok_or_else(ErrorResponse::unauthenticated)?;
 
         let algorithm =
             Algorithm::from_str(&jwk.common.key_algorithm.unwrap().to_string()).unwrap(); // Guaranteed by JWKS `is_supported`.
@@ -98,20 +89,18 @@ where
         validation.validate_exp = false; // Validation is done manually
 
         let token = jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)
-            .report_error("")
-            .map_err(|_| ErrorResponse::unuathenticated())?;
+            .map_err(|_| ErrorResponse::unauthenticated())?;
 
         // Validate NBF and exp
         let now: usize = jiff::Timestamp::now()
             .as_millisecond()
             .try_into()
-            .report_error("converting now to usize")
-            .map_err(|_| ErrorResponse::server_error())?;
+            .internal_server_error()?;
         if token.claims.nbf > now + 1000 * 60 * 5 {
-            return Err(ErrorResponse::unuathenticated());
+            return Err(ErrorResponse::unauthenticated());
         }
         if token.claims.exp < now - 1000 * 60 * 5 {
-            return Err(ErrorResponse::unuathenticated());
+            return Err(ErrorResponse::unauthenticated());
         }
 
         Ok(Jwt(token))
