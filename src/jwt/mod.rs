@@ -6,7 +6,7 @@ use core::str::FromStr;
 use std::sync::Arc;
 
 use axum::{
-    extract::FromRequestParts,
+    extract::{FromRequestParts, OptionalFromRequestParts},
     http::{StatusCode, request::Parts},
 };
 use jsonwebtoken::{Algorithm, TokenData, Validation};
@@ -23,6 +23,27 @@ pub trait JwksState {
 }
 
 pub struct Jwt(pub TokenData<Claims>);
+
+impl<S> OptionalFromRequestParts<S> for Jwt
+where
+    S: Send + Sync + JwksState,
+{
+    type Rejection = ErrorResponse;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        match parts.headers.get("Authorization") {
+            Some(_) => {
+                <Self as axum::extract::FromRequestParts<S>>::from_request_parts(parts, state)
+                    .await
+                    .map(Some)
+            }
+            None => Ok(None),
+        }
+    }
+}
 
 impl<S> FromRequestParts<S> for Jwt
 where

@@ -1,4 +1,7 @@
-use axum::{extract::FromRequestParts, http::request::Parts};
+use axum::{
+    extract::{FromRequestParts, OptionalFromRequestParts},
+    http::request::Parts,
+};
 
 use crate::ErrorResponse;
 
@@ -12,6 +15,29 @@ pub struct ApiKeyConfig {
 
 pub trait ApiKeyState {
     fn api_key_config(&self) -> &ApiKeyConfig;
+}
+
+impl<S> OptionalFromRequestParts<S> for ApiKey
+where
+    S: Send + Sync + ApiKeyState,
+{
+    type Rejection = ErrorResponse;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let config = state.api_key_config();
+
+        match parts.headers.get(&config.header) {
+            Some(_) => {
+                <Self as axum::extract::FromRequestParts<S>>::from_request_parts(parts, state)
+                    .await
+                    .map(Some)
+            }
+            None => Ok(None),
+        }
+    }
 }
 
 impl<S> FromRequestParts<S> for ApiKey
