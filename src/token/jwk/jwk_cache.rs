@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::Client;
 
-use crate::jws::jwk::DecodingJwk;
+use crate::token::jwk::DecodingJwk;
 
 pub struct JwkCache {
     pub url: String,

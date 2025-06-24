@@ -4,7 +4,7 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::jws::algorithm::Algorithm;
+use crate::token::algorithm::Algorithm;
 
 #[derive(Debug)]
 pub struct Jwt {

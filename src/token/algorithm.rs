@@ -8,9 +8,9 @@ use openssl::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::jws::jwt::{Claims, DecodeError, EncodeError, Header, Jwt};
+use crate::token::jwt::{Claims, DecodeError, EncodeError, Header, Jwt};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Algorithm {
     ES256,
 }

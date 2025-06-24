@@ -1,9 +1,9 @@
 mod api_key;
 mod json;
-pub mod jws;
 mod postgres;
 mod problem;
 mod report;
+pub mod token;
 
 pub use api_key::{ApiKey, ApiKeyConfig, ApiKeyState};
 pub use json::Json;
