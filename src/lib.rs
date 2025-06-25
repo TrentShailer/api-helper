@@ -6,6 +6,7 @@ mod postgres;
 mod problem;
 mod report;
 pub mod token;
+pub mod webauthn;
 
 pub use api_key::{ApiKey, ApiKeyConfig, HasApiKeyConfig};
 pub use json::Json;
