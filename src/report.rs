@@ -2,15 +2,19 @@ use core::{fmt::Display, panic::Location};
 
 use crate::ErrorResponse;
 
+/// Log an internal server error.
 #[track_caller]
 pub fn report_error<E: Display>(error: E) {
     tracing::error!("[{}] INTERNAL SERVER ERROR: {error}", Location::caller())
 }
 
+/// Trait for providing convenience functions to mark an error as an internal server error.
 pub trait InternalServerError<T> {
+    /// Mark the error as an internal server error.
     #[track_caller]
     fn internal_server_error(self) -> Result<T, ErrorResponse>;
 
+    /// Mark the error as an internal server error with some context.
     #[track_caller]
     fn internal_server_error_context<C: Display>(self, context: C) -> Result<T, ErrorResponse>;
 }

@@ -5,21 +5,28 @@ use axum::{
 
 use crate::ErrorResponse;
 
+/// Extractor to validate the request's API key.
 pub struct ApiKey(pub String);
 
+/// Config for the trusted API keys.
 #[derive(Clone)]
 pub struct ApiKeyConfig {
+    /// List of trusted API keys.
     pub allowed_api_keys: Vec<String>,
+
+    /// The header to look for the API keys in.
     pub header: String,
 }
 
-pub trait ApiKeyState {
+/// Mark that some State has an API config.
+pub trait HasApiKeyConfig {
+    /// Get the API config.
     fn api_key_config(&self) -> &ApiKeyConfig;
 }
 
 impl<S> OptionalFromRequestParts<S> for ApiKey
 where
-    S: Send + Sync + ApiKeyState,
+    S: Send + Sync + HasApiKeyConfig,
 {
     type Rejection = ErrorResponse;
 
@@ -30,11 +37,9 @@ where
         let config = state.api_key_config();
 
         match parts.headers.get(&config.header) {
-            Some(_) => {
-                <Self as axum::extract::FromRequestParts<S>>::from_request_parts(parts, state)
-                    .await
-                    .map(Some)
-            }
+            Some(_) => <Self as FromRequestParts<S>>::from_request_parts(parts, state)
+                .await
+                .map(Some),
             None => Ok(None),
         }
     }
@@ -42,7 +47,7 @@ where
 
 impl<S> FromRequestParts<S> for ApiKey
 where
-    S: Send + Sync + ApiKeyState,
+    S: Send + Sync + HasApiKeyConfig,
 {
     type Rejection = ErrorResponse;
 
@@ -61,6 +66,6 @@ where
             return Err(ErrorResponse::unauthenticated());
         }
 
-        Ok(ApiKey(header))
+        Ok(Self(header))
     }
 }

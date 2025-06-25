@@ -1,3 +1,4 @@
+//! Extractor for extracting and verifying the JWT token from the request.
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
@@ -5,18 +6,21 @@ use axum::{
 
 use crate::{
     ErrorResponse, InternalServerError,
-    token::{JwkCache, Jwt, jwt::Header},
+    token::{JsonWebKeySetCache, JsonWebToken, json_web_token::Header},
 };
 
-pub trait HasJwksCache {
-    fn jwks_cache(&self) -> &JwkCache;
+/// Marker trait for if some state has a JSON web key set cache.
+pub trait HasKeySetCache {
+    /// Get the JSON web key set cache.
+    fn jwks_cache(&self) -> &JsonWebKeySetCache;
 }
 
-pub struct Token(pub Jwt);
+/// Extractor for extracting and verifying the JSON web token token from the request.
+pub struct Token(pub JsonWebToken);
 
 impl<S> OptionalFromRequestParts<S> for Token
 where
-    S: Send + Sync + HasJwksCache,
+    S: Send + Sync + HasKeySetCache,
 {
     type Rejection = ErrorResponse;
 
@@ -25,11 +29,9 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         match parts.headers.get("Authorization") {
-            Some(_) => {
-                <Self as axum::extract::FromRequestParts<S>>::from_request_parts(parts, state)
-                    .await
-                    .map(Some)
-            }
+            Some(_) => <Self as FromRequestParts<S>>::from_request_parts(parts, state)
+                .await
+                .map(Some),
             None => Ok(None),
         }
     }
@@ -37,7 +39,7 @@ where
 
 impl<S> FromRequestParts<S> for Token
 where
-    S: Send + Sync + HasJwksCache,
+    S: Send + Sync + HasKeySetCache,
 {
     type Rejection = ErrorResponse;
 
@@ -81,6 +83,6 @@ where
             .internal_server_error()?
             .ok_or_else(ErrorResponse::unauthenticated)?;
 
-        Ok(Token(jwt))
+        Ok(Self(jwt))
     }
 }

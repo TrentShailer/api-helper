@@ -12,6 +12,7 @@ pub struct Problem {
     pub detail: Option<String>,
 }
 impl Problem {
+    /// Create a new problem from a pointer and some details.
     pub fn new<S1: ToString, S2: ToString>(pointer: S1, detail: S2) -> Self {
         Self {
             pointer: Some(pointer.to_string()),
@@ -19,6 +20,7 @@ impl Problem {
         }
     }
 
+    /// Create a new problem with just a pointer.
     pub fn pointer<S: ToString>(pointer: S) -> Self {
         Self {
             pointer: Some(pointer.to_string()),
@@ -26,6 +28,7 @@ impl Problem {
         }
     }
 
+    /// Create a new problem with just the details.
     pub fn detail<S: ToString>(detail: S) -> Self {
         Self {
             pointer: None,
@@ -46,6 +49,7 @@ pub struct ErrorResponse {
 }
 
 impl ErrorResponse {
+    /// Convenience function for an internal server error response.
     pub fn internal_server_error() -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -53,6 +57,7 @@ impl ErrorResponse {
         }
     }
 
+    /// Convenience function for an unauthenticated response.
     pub fn unauthenticated() -> Self {
         Self {
             status: StatusCode::UNAUTHORIZED,
@@ -60,6 +65,7 @@ impl ErrorResponse {
         }
     }
 
+    /// Convenience function for a not found response, with an optional pointer to what was not found.
     pub fn not_found<S: ToString>(pointer: Option<S>) -> Self {
         let problems = match pointer {
             Some(pointer) => vec![Problem::pointer(pointer)],
@@ -71,6 +77,8 @@ impl ErrorResponse {
         }
     }
 
+    /// Convenience function for a bad request response, with a set of problems that made the client
+    /// should fix.
     pub fn bad_request(problems: Vec<Problem>) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,

@@ -1,3 +1,5 @@
+//! Algorithms supported by this implementation.
+
 use core::{error::Error, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -8,17 +10,20 @@ use openssl::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::token::jwt::{Claims, DecodeError, EncodeError, Header, Jwt};
+use crate::token::json_web_token::{Claims, DecodeError, EncodeError, Header, JsonWebToken};
 
+/// Algorithms supported by this implementation.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Algorithm {
+    /// ES256 algorithm.
     ES256,
 }
 
 impl Algorithm {
+    /// Sign a JWT using this algorithm.
     pub fn sign<T: HasPrivate>(
         &self,
-        jwt: &Jwt,
+        jwt: &JsonWebToken,
         private_key: &PKey<T>,
     ) -> Result<String, SingingError> {
         let mut signer = match self {
@@ -69,11 +74,12 @@ impl Algorithm {
         Ok(signature)
     }
 
+    /// Verify a JWT using this algorithm.
     pub fn verify<T: HasPublic>(
         &self,
         token: &str,
         public_key: &PKey<T>,
-    ) -> Result<Option<Jwt>, VerifyError> {
+    ) -> Result<Option<JsonWebToken>, VerifyError> {
         let mut verifier = match self {
             Self::ES256 => {
                 Verifier::new(MessageDigest::sha256(), public_key).map_err(|source| {
@@ -109,24 +115,36 @@ impl Algorithm {
         let claims =
             Claims::decode(claims).map_err(|source| VerifyError::DecodeClaims { source })?;
 
-        Ok(Some(Jwt { header, claims }))
+        Ok(Some(JsonWebToken { header, claims }))
     }
 }
 
+/// Error variants for signing the JWT.
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum SingingError {
+    /// And OpenSSL operation failed.
     #[non_exhaustive]
     SignerOperation {
+        /// The source of the error.
         source: openssl::error::ErrorStack,
+        /// The operation that failed.
         operation: &'static str,
     },
 
+    /// The JWT header could not be encoded.
     #[non_exhaustive]
-    EncodeHeader { source: EncodeError },
+    EncodeHeader {
+        /// The source of the error.
+        source: EncodeError,
+    },
 
+    /// The JWT claims could not be encoded.
     #[non_exhaustive]
-    EncodeClaims { source: EncodeError },
+    EncodeClaims {
+        /// The source of the error.
+        source: EncodeError,
+    },
 }
 impl fmt::Display for SingingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -149,21 +167,34 @@ impl Error for SingingError {
     }
 }
 
+/// Error variants for verifying the JWT.
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum VerifyError {
+    /// An OpenSSL operation failed.
     #[non_exhaustive]
     VerifierOperation {
+        /// The source of this error.
         source: openssl::error::ErrorStack,
+        /// The operation that failed.
         operation: &'static str,
     },
 
+    /// Decoding the header failed.
     #[non_exhaustive]
-    DecodeHeader { source: DecodeError },
+    DecodeHeader {
+        /// The source of this error.
+        source: DecodeError,
+    },
 
+    /// Decoding the claims failed.
     #[non_exhaustive]
-    DecodeClaims { source: DecodeError },
+    DecodeClaims {
+        /// The source of the error.
+        source: DecodeError,
+    },
 
+    /// The header string was not in the expected format for JWTs.
     #[non_exhaustive]
     InvalidFormat,
 }

@@ -1,3 +1,4 @@
+//! A JWK used to verify a signed token.
 use core::{error::Error, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -10,22 +11,26 @@ use openssl::{
 };
 
 use crate::token::{
-    Jwk,
-    jwk::{Curve, JwkParameters},
+    JsonWebKey,
+    json_web_key::{Curve, JsonWebKeyParameters},
 };
 
-pub struct DecodingJwk {
-    pub jwk: Jwk,
+/// A JSON web key used to verify a signed token.
+pub struct VerifyingJsonWebKey {
+    /// The JSON web key.
+    pub jwk: JsonWebKey,
+    /// The time this JSON web key was retrieved from the JSON web key set.
     pub retrieved: Timestamp,
+    /// The public key derived from the JSON web key.
     pub key: PKey<Public>,
 }
 
-impl TryFrom<Jwk> for DecodingJwk {
+impl TryFrom<JsonWebKey> for VerifyingJsonWebKey {
     type Error = FromJwkError;
 
-    fn try_from(jwk: Jwk) -> Result<Self, Self::Error> {
+    fn try_from(jwk: JsonWebKey) -> Result<Self, Self::Error> {
         let key = match &jwk.parameters {
-            JwkParameters::EC { crv, x, y } => {
+            JsonWebKeyParameters::EC { crv, x, y } => {
                 let group = match crv {
                     Curve::P256 => EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)
                         .map_err(|source| EcFromJwkError::GetEcGroup { source })?,
@@ -72,10 +77,15 @@ impl TryFrom<Jwk> for DecodingJwk {
     }
 }
 
+/// Error variants for converting a JSON web key to a decoding key.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum FromJwkError {
-    Ec { source: EcFromJwkError },
+    /// Converting an elliptic curve JSON web key to a decoding key failed.
+    Ec {
+        /// The source of the failure.
+        source: EcFromJwkError,
+    },
 }
 impl fmt::Display for FromJwkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -102,29 +112,48 @@ impl From<EcFromJwkError> for FromJwkError {
     }
 }
 
+/// Error variants for converting an elliptic curve JSON web key to a public key.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum EcFromJwkError {
+    /// Getting the elliptic curve group failed.
     #[non_exhaustive]
-    GetEcGroup { source: openssl::error::ErrorStack },
+    GetEcGroup {
+        /// The source of the error.
+        source: openssl::error::ErrorStack,
+    },
 
+    /// A coordinate failed base64 decoding.
     #[non_exhaustive]
     Base64DecodeCoordinate {
+        /// The source of the error.
         source: base64ct::Error,
+        /// The coordinate that failed.
         coordinate: &'static str,
     },
 
+    /// Failed to create a BigNum from a coordinate.
     #[non_exhaustive]
     BigNumFromCoordinate {
+        /// The source of the error.
         source: openssl::error::ErrorStack,
+        /// The coordinate.
         coordinate: &'static str,
     },
 
+    /// Failed to create the elliptic curve key from the coordinates.
     #[non_exhaustive]
-    CreateEcKey { source: openssl::error::ErrorStack },
+    CreateEcKey {
+        /// The source of the error.
+        source: openssl::error::ErrorStack,
+    },
 
+    /// Failed to create the PKey from the EcKey.
     #[non_exhaustive]
-    CreatePKey { source: openssl::error::ErrorStack },
+    CreatePKey {
+        /// The source of the error.
+        source: openssl::error::ErrorStack,
+    },
 }
 impl fmt::Display for EcFromJwkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

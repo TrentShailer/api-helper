@@ -6,6 +6,7 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use crate::ErrorResponse;
 
+/// Custom JSON extractor for returning [`crate::ErrorResponse`] errors.
 pub struct Json<T>(pub T);
 
 impl<T: Serialize> IntoResponse for Json<T> {
@@ -23,10 +24,10 @@ where
     type Rejection = ErrorResponse;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        <axum::Json<_> as axum::extract::FromRequest<S>>::from_request(req, state)
+        <axum::Json<_> as FromRequest<S>>::from_request(req, state)
             .await
             .map_err(ErrorResponse::from)
-            .map(|value| Json(value.0))
+            .map(|value| Self(value.0))
     }
 }
 
@@ -38,9 +39,9 @@ where
     type Rejection = ErrorResponse;
 
     async fn from_request(req: Request, state: &S) -> Result<Option<Self>, Self::Rejection> {
-        <axum::Json<_> as axum::extract::OptionalFromRequest<S>>::from_request(req, state)
+        <axum::Json<_> as OptionalFromRequest<S>>::from_request(req, state)
             .await
             .map_err(ErrorResponse::from)
-            .map(|value| value.map(|value| Json(value.0)))
+            .map(|value| value.map(|value| Self(value.0)))
     }
 }

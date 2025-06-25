@@ -1,8 +1,10 @@
+//! Library module to handle JSON web tokens, JSON web keys, etc.
+
 pub mod algorithm;
 pub mod extractor;
-pub mod jwk;
-pub mod jwt;
+pub mod json_web_key;
+pub mod json_web_token;
 
 pub use algorithm::Algorithm;
-pub use jwk::{DecodingJwk, EncodingJwk, Jwk, JwkCache};
-pub use jwt::Jwt;
+pub use json_web_key::{JsonWebKey, JsonWebKeySetCache, SigningJsonWebKey, VerifyingJsonWebKey};
+pub use json_web_token::JsonWebToken;

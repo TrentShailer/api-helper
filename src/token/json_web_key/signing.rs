@@ -1,25 +1,30 @@
+//! A JSON web key used to sign a JSON web token.
 use core::{error::Error, fmt};
 
 use openssl::pkey::{Id, PKey, Private};
 
 use crate::token::{
-    DecodingJwk, Jwk,
-    jwk::{JwkParameters, decoding_jwk},
+    JsonWebKey, VerifyingJsonWebKey,
+    json_web_key::{JsonWebKeyParameters, verifying},
 };
 
-pub struct EncodingJwk {
-    pub jwk: Jwk,
+/// A JSON web key used to sign a JSON web token.
+pub struct SigningJsonWebKey {
+    /// The JSON web key.
+    pub jwk: JsonWebKey,
+    /// The private key.
     pub key: PKey<Private>,
 }
 
-impl EncodingJwk {
-    pub fn try_from_pem(jwk: Jwk, pem: &[u8]) -> Result<Self, FromPemError> {
+impl SigningJsonWebKey {
+    /// Try create an encoding JSON web key from a JSON web key and a PEM encoded private key.
+    pub fn try_from_pem(jwk: JsonWebKey, pem: &[u8]) -> Result<Self, FromPemError> {
         let private_key = PKey::private_key_from_pem(pem)
             .map_err(|source| FromPemError::PemToPrivateKey { source })?;
 
-        // Validate private key for this JWK
+        // Validate private key for this JSON web key
         match jwk.parameters {
-            JwkParameters::EC { .. } => {
+            JsonWebKeyParameters::EC { .. } => {
                 let id = private_key.id();
                 if id != Id::EC {
                     return Err(FromPemError::PemJwkMismatch {
@@ -30,7 +35,7 @@ impl EncodingJwk {
                     });
                 }
 
-                let decoding_jwk = DecodingJwk::try_from(jwk.clone())
+                let decoding_jwk = VerifyingJsonWebKey::try_from(jwk.clone())
                     .map_err(|source| FromPemError::InvalidJwk { source })?;
 
                 if !private_key.public_eq(&decoding_jwk.key) {
@@ -48,17 +53,30 @@ impl EncodingJwk {
     }
 }
 
+/// Error variants for creating an Encoding JSON web key from a PEM file.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum FromPemError {
+    /// The PEM to private key conversion failed.
     #[non_exhaustive]
-    PemToPrivateKey { source: openssl::error::ErrorStack },
+    PemToPrivateKey {
+        /// The source of the failure.
+        source: openssl::error::ErrorStack,
+    },
 
+    /// The JSON web key is not valid.
     #[non_exhaustive]
-    InvalidJwk { source: decoding_jwk::FromJwkError },
+    InvalidJwk {
+        /// The source of the error.
+        source: verifying::FromJwkError,
+    },
 
+    /// The PEM is not the private key for the JSON web key.
     #[non_exhaustive]
-    PemJwkMismatch { kind: MismatchKind },
+    PemJwkMismatch {
+        /// What was mismatched.
+        kind: MismatchKind,
+    },
 }
 impl fmt::Display for FromPemError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -81,12 +99,20 @@ impl Error for FromPemError {
     }
 }
 
+/// The properties that can be mismatched between the PEM and the JSON web key.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum MismatchKind {
+    /// The IDs don't match.
     #[non_exhaustive]
-    Id { expected: Id, real: Id },
+    Id {
+        /// The expected ID from the JSON web key.
+        expected: Id,
+        /// The real ID from the PEM file.
+        real: Id,
+    },
 
+    /// The public key from the JSON web key does not match the PEM private key.
     #[non_exhaustive]
     PublicKey,
 }

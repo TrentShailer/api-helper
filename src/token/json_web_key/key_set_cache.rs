@@ -1,3 +1,4 @@
+//! A cache for a JWKS.
 use core::{error::Error, fmt};
 use std::collections::HashMap;
 
@@ -5,16 +6,22 @@ use jiff::{SignedDuration, Timestamp};
 use reqwest::{Client, StatusCode};
 use tokio::sync::RwLock;
 
-use crate::token::jwk::{DecodingJwk, Jwks, decoding_jwk};
+use crate::token::json_web_key::{JsonWebKeySet, VerifyingJsonWebKey, verifying};
 
-pub struct JwkCache {
+/// A cache for a JSON web key set.
+pub struct JsonWebKeySetCache {
+    /// The URL to the JSON web key set.
     pub url: String,
+    /// The web client used to fetch from the JSON web key set.
     pub client: Client,
-    pub cache: RwLock<HashMap<String, DecodingJwk>>,
+    /// The cached JSON web keys.
+    pub cache: RwLock<HashMap<String, VerifyingJsonWebKey>>,
+    /// The time the cache was last refreshed.
     pub last_refresh: RwLock<Timestamp>,
 }
 
-impl JwkCache {
+impl JsonWebKeySetCache {
+    /// Create a new cache.
     pub fn new(jwks_url: String, client: Client) -> Self {
         Self {
             url: jwks_url,
@@ -24,6 +31,7 @@ impl JwkCache {
         }
     }
 
+    /// Refresh the cache.
     pub async fn refresh(&self) -> Result<(), RefreshCacheError> {
         let now = Timestamp::now();
 
@@ -33,17 +41,18 @@ impl JwkCache {
         }
         drop(last_refresh);
 
-        let jwks: Jwks = self.client.get(&self.url).send().await?.json().await?;
+        let jwks: JsonWebKeySet = self.client.get(&self.url).send().await?.json().await?;
 
         let mut cache = self.cache.write().await;
 
         for jwk in jwks.keys {
             let kid = jwk.kid.clone();
-            let decoding_jwk =
-                DecodingJwk::try_from(jwk).map_err(|source| RefreshCacheError::InvalidJwk {
+            let decoding_jwk = VerifyingJsonWebKey::try_from(jwk).map_err(|source| {
+                RefreshCacheError::InvalidJwk {
                     kid: kid.clone(),
                     source,
-                })?;
+                }
+            })?;
             cache.insert(kid, decoding_jwk);
         }
 
@@ -59,28 +68,47 @@ impl JwkCache {
     }
 }
 
+/// Error variants from refreshing the cache.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum RefreshCacheError {
+    /// The client could not connect to the JSON web key set server.
     #[non_exhaustive]
-    CouldNotConnect { source: reqwest::Error },
-
-    #[non_exhaustive]
-    InvalidResponse { source: reqwest::Error },
-
-    #[non_exhaustive]
-    InvalidRequest { source: reqwest::Error },
-
-    #[non_exhaustive]
-    ErrorResponse {
-        status: StatusCode,
+    CouldNotConnect {
+        /// The source of the error.
         source: reqwest::Error,
     },
 
+    /// The JSON web key set sent back and invalid response.
+    #[non_exhaustive]
+    InvalidResponse {
+        /// The source of the error.
+        source: reqwest::Error,
+    },
+
+    /// The client request was invalid.
+    #[non_exhaustive]
+    InvalidRequest {
+        /// The source of the error.
+        source: reqwest::Error,
+    },
+
+    /// The JSON web key set sent back an error response.
+    #[non_exhaustive]
+    ErrorResponse {
+        /// The response code.
+        status: StatusCode,
+        /// The source of the error.
+        source: reqwest::Error,
+    },
+
+    /// A JSON web key in the JSON web key set is invalid.
     #[non_exhaustive]
     InvalidJwk {
+        /// The JSON web key's ID.
         kid: String,
-        source: decoding_jwk::FromJwkError,
+        /// The source of the error.
+        source: verifying::FromJwkError,
     },
 }
 impl Error for RefreshCacheError {}
