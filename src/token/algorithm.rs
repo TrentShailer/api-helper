@@ -71,7 +71,7 @@ impl Algorithm {
 
     pub fn verify<T: HasPublic>(
         &self,
-        token: String,
+        token: &str,
         public_key: &PKey<T>,
     ) -> Result<Option<Jwt>, VerifyError> {
         let mut verifier = match self {

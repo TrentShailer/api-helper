@@ -1,4 +1,5 @@
 pub mod algorithm;
+pub mod extractor;
 pub mod jwk;
 pub mod jwt;
 
