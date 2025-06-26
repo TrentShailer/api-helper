@@ -2,9 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::webauthn::public_key_credential_creation_options::{
-    Hint, Transports, Type, UserVerification,
-};
+use crate::webauthn::public_key_credential::{Hint, Transports, Type, UserVerification};
 
 /// https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions
 #[derive(Debug, Deserialize, Serialize)]

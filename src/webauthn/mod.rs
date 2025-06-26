@@ -1,6 +1,9 @@
 //! Helpers for working with WebAuthN
 //!
 
+pub mod assertion_response;
+pub mod attestation_response;
+pub mod public_key_credential;
 pub mod public_key_credential_creation_options;
 pub mod public_key_credential_request_options;
 
@@ -21,7 +24,6 @@ pub(crate) mod serde_url_base64 {
     {
         let value: &str = Deserialize::deserialize(deserializer)?;
 
-        Base64UrlUnpadded::decode_vec(value)
-            .map_err(|_| de::Error::custom(format!("`{value}` is not valid URL base64")))
+        Base64UrlUnpadded::decode_vec(value).map_err(de::Error::custom)
     }
 }
