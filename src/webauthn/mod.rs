@@ -1,8 +1,11 @@
 //! Helpers for working with WebAuthN
 //!
 
+#![allow(missing_docs)]
+
 use serde::{Deserialize, Serialize};
 
+/// https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyCredentialCreationOptions {
@@ -19,6 +22,7 @@ pub struct PublicKeyCredentialCreationOptions {
     pub user: User,
     pub hints: Option<Vec<Hint>>,
 }
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Attestation {
@@ -109,47 +113,41 @@ pub struct PubKeyCredParams {
     pub r#type: Type,
 }
 
+/// https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 #[derive(Debug, Deserialize, Serialize)]
 #[repr(i32)]
 pub enum Algorithm {
-    /// EdDSA using Ed448 curve
+    /// `EdDSA using Ed448 curve`
     ED448 = -53,
-    /// ECDSA using secp256k1 curve and SHA-256
+    /// `ECDSA using secp256k1 curve and SHA-256`
     ES256K = -47,
-    /// RSASSA-PSS w/ SHA-512
+    /// `RSASSA-PSS w/ SHA-512`
     PS512 = -39,
-    /// RSASSA-PSS w/ SHA-384
+    /// `RSASSA-PSS w/ SHA-384`
     PS384 = -38,
-    /// RSASSA-PSS w/ SHA-256
+    /// `RSASSA-PSS w/ SHA-256`
     PS256 = -37,
-    /// EdDSA using Ed25519 curve
+    /// `EdDSA using Ed25519 curve`
     ED25519 = -19,
-    /// ECDSA using P-256 curve and SHA-256
+    /// `ECDSA using P-256 curve and SHA-256`
     ESP256 = -9,
-    /// ECDSA using P-384 curve and SHA-384
+    /// `ECDSA using P-384 curve and SHA-384`
     ESP384 = -51,
-    /// ECDSA using P-521 curve and SHA-512
+    /// `ECDSA using P-521 curve and SHA-512`
     ESP512 = -52,
-    /// RSASSA-PKCS1-v1_5 using SHA-512
-    #[deprecated]
+    /// (Not recommended) `RSASSA-PKCS1-v1_5 using SHA-512`
     RS512 = -259,
-    /// RSASSA-PKCS1-v1_5 using SHA-384
-    #[deprecated]
+    /// (Not recommended) `RSASSA-PKCS1-v1_5 using SHA-384`
     RS384 = -258,
-    /// RSASSA-PKCS1-v1_5 using SHA-256
-    #[deprecated]
+    /// (Not recommended) `RSASSA-PKCS1-v1_5 using SHA-256`
     RS256 = -257,
-    /// EdDSA
-    #[deprecated]
+    /// (Deprecated) `EdDSA`
     EdDSA = -8,
-    /// ECDSA w/ SHA-512
-    #[deprecated]
+    /// (Deprecated) `ECDSA w/ SHA-512`
     ES512 = -36,
-    /// ECDSA w/ SHA-384
-    #[deprecated]
+    /// (Deprecated) `ECDSA w/ SHA-384`
     ES384 = -35,
-    /// ECDSA w/ SHA-256
-    #[deprecated]
+    /// (Deprecated) `ECDSA w/ SHA-256`
     ES256 = -7,
 }
 
