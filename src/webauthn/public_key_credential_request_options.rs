@@ -15,7 +15,8 @@ pub struct PublicKeyCredentialRequestOptions {
     pub challenge: Vec<u8>,
     pub extensions: Option<Extensions>,
     pub hints: Option<Vec<Hint>>,
-    pub rp_id: Option<String>,
+    #[serde(rename = "rpId")]
+    pub relying_party_id: Option<String>,
     pub timeout: u64,
     pub user_verification: Option<UserVerification>,
 }

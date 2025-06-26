@@ -13,8 +13,10 @@ pub struct PublicKeyCredentialCreationOptions {
     pub challenge: Vec<u8>,
     pub exclude_credentials: Option<Vec<ExcludeCredentials>>,
     pub extensions: Option<Extensions>,
-    pub pub_key_cred_params: Vec<PubKeyCredParams>,
-    pub rp: RelyingParty,
+    #[serde(rename = "pubKeyCredParams")]
+    pub public_key_parameters: Vec<PublicKeyParameters>,
+    #[serde(rename = "rp")]
+    pub relying_party: RelyingParty,
     pub timeout: u64,
     pub user: User,
     pub hints: Option<Vec<Hint>>,
@@ -87,7 +89,8 @@ pub enum Type {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Extensions {
-    pub cred_props: Option<bool>,
+    #[serde(rename = "credProp")]
+    pub return_credential_properties: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -105,8 +108,9 @@ pub struct User {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct PubKeyCredParams {
-    pub alg: Algorithm,
+pub struct PublicKeyParameters {
+    #[serde(rename = "alg")]
+    pub algorithm: Algorithm,
     pub r#type: Type,
 }
 
