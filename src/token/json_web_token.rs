@@ -201,13 +201,8 @@ impl From<serde_json::Error> for EncodeError {
 }
 
 mod serde_msec {
-    use core::fmt;
-
     use jiff::Timestamp;
-    use serde::{
-        Deserializer, Serializer,
-        de::{self, Visitor},
-    };
+    use serde::{Deserialize, Deserializer, Serializer, de};
 
     pub fn serialize<S>(value: &Timestamp, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -220,66 +215,7 @@ mod serde_msec {
     where
         D: Deserializer<'de>,
     {
-        struct I64Visitor;
-        impl<'de> Visitor<'de> for I64Visitor {
-            type Value = i64;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("an integer between -2^63 and 2^63")
-            }
-
-            fn visit_i8<E>(self, value: i8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(i64::from(value))
-            }
-
-            fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(i64::from(value))
-            }
-
-            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(value)
-            }
-
-            fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(i64::from(value))
-            }
-
-            fn visit_u16<E>(self, value: u16) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(i64::from(value))
-            }
-
-            fn visit_u32<E>(self, value: u32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(i64::from(value))
-            }
-
-            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                i64::try_from(value)
-                    .map_err(|_| E::custom(format!("{value} does not fit in an `i64`")))
-            }
-        }
-
-        let value = deserializer.deserialize_i64(I64Visitor)?;
+        let value: i64 = Deserialize::deserialize(deserializer)?;
 
         Timestamp::from_millisecond(value)
             .map_err(|_| de::Error::custom(format!("{value} does not fit in a `jiff::Timestamp`")))

@@ -9,7 +9,7 @@ pub struct PublicKeyCredentialCreationOptions {
     pub attestation: Option<Attestation>,
     pub attestation_formats: Option<String>,
     pub authenticator_selection: Option<AuthenticatorSelection>,
-    /// TODO Base64 encoded challenge.
+    #[serde(with = "serde_url_base64")]
     pub challenge: Vec<u8>,
     pub exclude_credentials: Option<Vec<ExcludeCredentials>>,
     pub extensions: Option<Extensions>,
@@ -20,6 +20,7 @@ pub struct PublicKeyCredentialCreationOptions {
     pub hints: Option<Vec<Hint>>,
 }
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Attestation {
     None,
     Direct,
@@ -37,13 +38,14 @@ pub struct AuthenticatorSelection {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum AuthenticatorAttachment {
     Platform,
-    #[serde(rename = "cross-platform")]
-    Crossplatform,
+    CrossPlatform,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ResidentKey {
     Discouraged,
     Preferred,
@@ -51,6 +53,7 @@ pub enum ResidentKey {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum UserVerification {
     Discouraged,
     Preferred,
@@ -59,13 +62,14 @@ pub enum UserVerification {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ExcludeCredentials {
-    /// TODO Base64 encoded ID.
+    #[serde(with = "serde_url_base64")]
     pub id: Vec<u8>,
     pub transports: Option<Vec<Transports>>,
     pub r#type: Type,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Transports {
     Ble,
     Hybrid,
@@ -75,8 +79,8 @@ pub enum Transports {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Type {
-    #[serde(rename = "public-key")]
     PublicKey,
 }
 
@@ -94,7 +98,7 @@ pub struct RelyingParty {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct User {
     pub display_name: String,
-    /// TODO Base64 encoded.
+    #[serde(with = "serde_url_base64")]
     pub id: Vec<u8>,
     pub name: String,
 }
@@ -150,10 +154,31 @@ pub enum Algorithm {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Hint {
-    #[serde(rename = "security-key")]
     SecurityKey,
-    #[serde(rename = "client-device")]
     ClientDevice,
     Hybrid,
+}
+
+mod serde_url_base64 {
+    use base64ct::{Base64UrlUnpadded, Encoding};
+    use serde::{Deserialize, Deserializer, Serializer, de};
+
+    pub fn serialize<S, V: AsRef<[u8]>>(value: &V, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&Base64UrlUnpadded::encode_string(value.as_ref()))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value: &str = Deserialize::deserialize(deserializer)?;
+
+        Base64UrlUnpadded::decode_vec(value)
+            .map_err(|_| de::Error::custom(format!("`{value}` is not valid URL base64")))
+    }
 }
