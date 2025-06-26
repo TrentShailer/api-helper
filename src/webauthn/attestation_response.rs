@@ -1,11 +1,11 @@
 #![allow(missing_docs)]
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::webauthn::public_key_credential::{Algorithm, ClientDataJson, Transports};
 
 /// https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AttestationResponse {
     #[serde(with = "super::serde_url_base64")]
@@ -18,7 +18,7 @@ pub struct AttestationResponse {
     pub method_results: MethodResults,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct MethodResults {
     #[serde(with = "super::serde_url_base64")]
     pub authenticator_data: Vec<u8>,

@@ -8,11 +8,10 @@ use crate::webauthn::{
 };
 
 /// https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyCredential {
     pub authenticator_attachment: AuthenticatorAttachment,
-    /// `base64url` encoded `raw_id`.
     pub id: String,
     #[serde(with = "super::serde_url_base64")]
     pub raw_id: Vec<u8>,
@@ -26,7 +25,7 @@ pub enum AuthenticatorAttachment {
     CrossPlatform,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
     AttestationResponse(AttestationResponse),
