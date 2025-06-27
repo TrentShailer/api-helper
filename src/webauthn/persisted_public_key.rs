@@ -30,7 +30,8 @@ pub struct PersistedPublicKey {
     pub transports: Vec<Transports>,
 
     /// The number of times the private key has been used to sign.
-    /// This should be monotonic and each value should only appear once.
+    /// This should be monotonic and each value should only appear once if the authenticator supports it.
+    /// Otherwise it should always be zero.
     pub signature_counter: u32,
 
     /// When this public key was created.

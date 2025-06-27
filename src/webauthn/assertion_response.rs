@@ -28,6 +28,7 @@ pub struct AuthenticatorData {
     pub relying_party_id_hash: [u8; 32],
     pub flags: Flags,
     pub signature_counter: u32,
+    pub raw: Vec<u8>,
 }
 
 #[repr(transparent)]
@@ -68,6 +69,7 @@ impl<'de> Deserialize<'de> for AuthenticatorData {
             relying_party_id_hash,
             flags,
             signature_counter,
+            raw: bytes,
         })
     }
 }

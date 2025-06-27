@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 
 use base64ct::{Base64UrlUnpadded, Encoding};
+use openssl::pkey::Id;
 use serde::{Deserialize, Serialize, de};
 
 use crate::webauthn::{
@@ -40,9 +41,10 @@ pub struct ClientDataJson {
     pub origin: String,
     pub top_origin: Option<String>,
     pub r#type: ClientDataType,
+    pub raw: Vec<u8>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum ClientDataType {
     #[serde(rename = "webauthn.create")]
     WebAuthNCreate,
@@ -55,10 +57,28 @@ impl<'de> Deserialize<'de> for ClientDataJson {
     where
         D: serde::Deserializer<'de>,
     {
+        #[derive(Debug, Deserialize)]
+        struct RealData {
+            #[serde(with = "super::serde_url_base64")]
+            pub challenge: Vec<u8>,
+            pub cross_origin: Option<bool>,
+            pub origin: String,
+            pub top_origin: Option<String>,
+            pub r#type: ClientDataType,
+        }
+
         let base64: &str = Deserialize::deserialize(deserializer)?;
         let json_bytes = Base64UrlUnpadded::decode_vec(base64).map_err(de::Error::custom)?;
-        let value = serde_json::from_slice(&json_bytes).map_err(de::Error::custom)?;
-        Ok(value)
+        let value: RealData = serde_json::from_slice(&json_bytes).map_err(de::Error::custom)?;
+
+        Ok(Self {
+            challenge: value.challenge,
+            cross_origin: value.cross_origin,
+            origin: value.origin,
+            top_origin: value.top_origin,
+            r#type: value.r#type,
+            raw: json_bytes,
+        })
     }
 }
 
@@ -113,6 +133,27 @@ pub enum Algorithm {
     ES384 = -35,
     /// (Deprecated) `ECDSA w/ SHA-256`
     ES256 = -7,
+}
+
+impl Algorithm {
+    pub fn id(&self) -> Id {
+        match &self {
+            Self::ED448 => Id::ED448,
+            Self::ED25519 => Id::ED25519,
+            Self::EdDSA => Id::DSA, // TODO
+
+            Self::ES512
+            | Self::ES384
+            | Self::ES256
+            | Self::ES256K
+            | Self::ESP256
+            | Self::ESP384
+            | Self::ESP512 => Id::EC,
+
+            Self::PS512 | Self::PS384 | Self::PS256 => Id::RSA_PSS,
+            Self::RS512 | Self::RS384 | Self::RS256 => Id::RSA,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
