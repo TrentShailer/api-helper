@@ -14,6 +14,7 @@ use crate::token::json_web_token::{Claims, DecodeError, EncodeError, Header, Jso
 
 /// Algorithms supported by this implementation.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
 pub enum Algorithm {
     /// ES256 algorithm.
     ES256,

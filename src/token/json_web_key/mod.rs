@@ -31,6 +31,7 @@ pub struct JsonWebKey {
 /// The parameters that make up the key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kty")]
+#[non_exhaustive]
 pub enum JsonWebKeyParameters {
     /// The elliptic curve parameters.
     EC {
@@ -45,6 +46,7 @@ pub enum JsonWebKeyParameters {
 
 /// The curves supported by this implementation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Curve {
     /// The Prime 256 curve.
     #[serde(rename = "P-256")]

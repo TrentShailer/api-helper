@@ -28,6 +28,7 @@ pub struct PublicKeyCredentialCreationOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum Attestation {
     None,
     Direct,
@@ -46,6 +47,7 @@ pub struct AuthenticatorSelection {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum ResidentKey {
     Discouraged,
     Preferred,

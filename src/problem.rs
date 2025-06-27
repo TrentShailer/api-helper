@@ -1,6 +1,26 @@
+use core::fmt;
+
 use axum::{extract::rejection::JsonRejection, response::IntoResponse};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+
+/// Trait for providing convenience functions to mark an error as an internal server error.
+pub trait InternalServerError<T> {
+    /// Mark the error as an internal server error.
+    fn internal_server_error(self) -> Result<T, ErrorResponse>;
+}
+
+impl<T, E: fmt::Display> InternalServerError<T> for Result<T, E> {
+    fn internal_server_error(self) -> Result<T, ErrorResponse> {
+        self.map_err(|_| ErrorResponse::internal_server_error())
+    }
+}
+
+impl<T> InternalServerError<T> for Option<T> {
+    fn internal_server_error(self) -> Result<T, ErrorResponse> {
+        self.ok_or_else(ErrorResponse::internal_server_error)
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

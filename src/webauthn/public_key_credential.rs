@@ -21,6 +21,7 @@ pub struct PublicKeyCredential {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum AuthenticatorAttachment {
     Platform,
     CrossPlatform,
@@ -28,6 +29,7 @@ pub enum AuthenticatorAttachment {
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum Response {
     AttestationResponse(AttestationResponse),
     AssertionResponse(AssertionResponse),
@@ -45,6 +47,7 @@ pub struct ClientDataJson {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ClientDataType {
     #[serde(rename = "webauthn.create")]
     WebAuthNCreate,
@@ -84,6 +87,7 @@ impl<'de> Deserialize<'de> for ClientDataJson {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum Transports {
     Ble,
     Hybrid,
@@ -94,12 +98,14 @@ pub enum Transports {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum Type {
     PublicKey,
 }
 /// https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 #[derive(Debug, Deserialize, Serialize)]
 #[repr(i32)]
+#[non_exhaustive]
 pub enum Algorithm {
     /// `EdDSA using Ed448 curve`
     ED448 = -53,
@@ -158,6 +164,7 @@ impl Algorithm {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum UserVerification {
     Discouraged,
     Preferred,
@@ -165,6 +172,7 @@ pub enum UserVerification {
 }
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum Hint {
     SecurityKey,
     ClientDevice,

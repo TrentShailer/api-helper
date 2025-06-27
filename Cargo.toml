@@ -1,8 +1,9 @@
 [package]
 authors = ["Trent Shailer"]
+description = "Various helper functions, structures, and traits for creating my APIs."
 edition = "2024"
 license = "MIT OR Apache-2.0"
-name = "api-helper"
+name = "ts-api-helper"
 rust-version = "1.88"
 version = "0.3.0"
 
@@ -12,7 +13,7 @@ tokio = { version = "1.45", default-features = false, features = ["sync"] }
 
 jiff = { version = "0.2", features = ["serde"] }
 
-tracing = "0.1"
+log = "0.4"
 
 bb8 = "0.9"
 bb8-postgres = { version = "0.9" }
@@ -30,7 +31,6 @@ openssl = { version = "0.10" }
 vendor-openssl = ["openssl/vendored"]
 
 [lints.rust]
-"deprecated_in_future" = "warn"
 "missing_docs" = "warn"
 "rust_2018_idioms" = "warn"
 "unused_qualifications" = "warn"
@@ -38,6 +38,7 @@ vendor-openssl = ["openssl/vendored"]
 [lints.clippy]
 "as_conversions" = "warn"
 "cast_lossless" = "warn"
+"exhaustive_enums" = "warn"
 "inconsistent_struct_constructor" = "warn"
 "todo" = "warn"
 "unnecessary_self_imports" = "warn"
