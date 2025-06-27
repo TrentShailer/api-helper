@@ -108,7 +108,7 @@ impl Claims {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[non_exhaustive]
 /// The result of validating the claims.
 pub enum ClaimsValidationResult {

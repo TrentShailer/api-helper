@@ -45,13 +45,6 @@ impl Algorithm {
                 .map_err(|source| SingingError::EncodeClaims { source })?,
         );
 
-        signer
-            .update(contents.as_bytes())
-            .map_err(|source| SingingError::SignerOperation {
-                source,
-                operation: "update",
-            })?;
-
         let mut signature_buffer = vec![
             0u8;
             signer.len().map_err(|source| {
@@ -95,8 +88,11 @@ impl Algorithm {
             .rsplit_once('.')
             .ok_or_else(|| VerifyError::InvalidFormat)?;
 
+        let signature_bytes = Base64UrlUnpadded::decode_vec(signature)
+            .map_err(|source| VerifyError::DecodeSignature { source })?;
+
         let is_valid = verifier
-            .verify_oneshot(signature.as_bytes(), contents.as_bytes())
+            .verify_oneshot(&signature_bytes, contents.as_bytes())
             .map_err(|source| VerifyError::VerifierOperation {
                 source,
                 operation: "verify",
@@ -194,6 +190,13 @@ pub enum VerifyError {
         source: DecodeError,
     },
 
+    /// Decoding the signature failed.
+    #[non_exhaustive]
+    DecodeSignature {
+        /// The source of the error.
+        source: base64ct::Error,
+    },
+
     /// The header string was not in the expected format for JWTs.
     #[non_exhaustive]
     InvalidFormat,
@@ -206,6 +209,7 @@ impl fmt::Display for VerifyError {
             }
             Self::DecodeHeader { .. } => write!(f, "JWT header could not be decoded"),
             Self::DecodeClaims { .. } => write!(f, "JWT claims could not be decoded"),
+            Self::DecodeSignature { .. } => write!(f, "JWT signature could not be decoded"),
             Self::InvalidFormat { .. } => write!(f, "token is not a valid JWS string"),
         }
     }
@@ -216,6 +220,7 @@ impl Error for VerifyError {
             Self::VerifierOperation { source, .. } => Some(source),
             Self::DecodeHeader { source, .. } => Some(source),
             Self::DecodeClaims { source, .. } => Some(source),
+            Self::DecodeSignature { source, .. } => Some(source),
             _ => None,
         }
     }
