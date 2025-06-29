@@ -1,9 +1,10 @@
 //! A challenge issued to a client.
 
 use jiff::Timestamp;
+use serde::{Deserialize, Serialize};
 
 /// A challenge issued to a client.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
     /// The challenge.
     pub challenge: Vec<u8>,

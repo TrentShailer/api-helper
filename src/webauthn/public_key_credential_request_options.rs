@@ -20,6 +20,7 @@ pub struct PublicKeyCredentialRequestOptions {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AllowCredentials {
     #[serde(with = "super::serde_url_base64")]
     pub id: Vec<u8>,
@@ -28,4 +29,5 @@ pub struct AllowCredentials {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Extensions {}

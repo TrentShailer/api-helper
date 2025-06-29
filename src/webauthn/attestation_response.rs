@@ -22,6 +22,7 @@ pub struct AttestationResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MethodResults {
     pub authenticator_data: AuthenticatorData,
     #[serde(with = "super::serde_url_base64")]

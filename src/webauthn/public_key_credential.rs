@@ -30,12 +30,14 @@ pub enum AuthenticatorAttachment {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 #[non_exhaustive]
+#[serde(rename_all = "camelCase")]
 pub enum Response {
     AttestationResponse(AttestationResponse),
     AssertionResponse(AssertionResponse),
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClientDataJson {
     #[serde(with = "super::serde_url_base64")]
     pub challenge: Vec<u8>,

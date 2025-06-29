@@ -8,7 +8,7 @@ use crate::webauthn::public_key_credential::{
 
 /// https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")] // TODO does this override children?
+#[serde(rename_all = "camelCase")]
 pub struct PublicKeyCredentialCreationOptions {
     pub attestation: Option<Attestation>,
     pub attestation_formats: Option<String>,
@@ -37,6 +37,7 @@ pub enum Attestation {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthenticatorSelection {
     pub authenticator_attachment: Option<AuthenticatorAttachment>,
     #[deprecated(note = "Should be true if residentKey is required.")]
@@ -55,6 +56,7 @@ pub enum ResidentKey {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExcludeCredentials {
     #[serde(with = "super::serde_url_base64")]
     pub id: Vec<u8>,
@@ -63,18 +65,21 @@ pub struct ExcludeCredentials {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Extensions {
     #[serde(rename = "credProp")]
     pub return_credential_properties: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RelyingParty {
     pub id: Option<String>,
     pub name: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub display_name: String,
     #[serde(with = "super::serde_url_base64")]
@@ -83,6 +88,7 @@ pub struct User {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PublicKeyParameters {
     #[serde(rename = "alg")]
     pub algorithm: Algorithm,
