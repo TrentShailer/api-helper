@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::token::algorithm::Algorithm;
 
 /// A decoded JSON web token.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JsonWebToken {
     /// The JWT header.
     pub header: Header,
@@ -17,7 +17,7 @@ pub struct JsonWebToken {
 }
 
 /// The JWT header.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Header {
     /// The algorithm used to sign the JSON web token.
     pub alg: Algorithm,
@@ -45,7 +45,7 @@ impl Header {
 }
 
 /// The JSON web token claims.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Claims {
     /// The expiry of the JSON web token.
     #[serde(with = "serde_msec")]

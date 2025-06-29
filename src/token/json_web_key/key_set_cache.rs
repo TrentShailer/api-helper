@@ -1,6 +1,6 @@
 //! A cache for a JWKS.
 use core::{error::Error, fmt};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use jiff::{SignedDuration, Timestamp};
 use reqwest::{Client, StatusCode};
@@ -9,15 +9,16 @@ use tokio::sync::RwLock;
 use crate::token::json_web_key::{JsonWebKeySet, VerifyingJsonWebKey, verifying};
 
 /// A cache for a JSON web key set.
+#[derive(Clone)]
 pub struct JsonWebKeySetCache {
     /// The URL to the JSON web key set.
     pub url: String,
     /// The web client used to fetch from the JSON web key set.
     pub client: Client,
     /// The cached JSON web keys.
-    pub cache: RwLock<HashMap<String, VerifyingJsonWebKey>>,
+    pub cache: Arc<RwLock<HashMap<String, VerifyingJsonWebKey>>>,
     /// The time the cache was last refreshed.
-    pub last_refresh: RwLock<Timestamp>,
+    pub last_refresh: Arc<RwLock<Timestamp>>,
 }
 
 impl JsonWebKeySetCache {
@@ -26,8 +27,8 @@ impl JsonWebKeySetCache {
         Self {
             url: jwks_url,
             client,
-            cache: RwLock::new(HashMap::new()),
-            last_refresh: RwLock::new(Timestamp::UNIX_EPOCH),
+            cache: Arc::new(RwLock::new(HashMap::new())),
+            last_refresh: Arc::new(RwLock::new(Timestamp::UNIX_EPOCH)),
         }
     }
 
