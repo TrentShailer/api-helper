@@ -1,24 +1,29 @@
-use core::fmt;
+use core::error::Error;
 
 use axum::{extract::rejection::JsonRejection, response::IntoResponse};
-use reqwest::StatusCode;
+use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use ts_rust_helper::error::{ErrorLogger, IntoErrorReport};
 
 /// Trait for providing convenience functions to mark an error as an internal server error.
 pub trait InternalServerError<T> {
     /// Mark the error as an internal server error.
-    fn internal_server_error(self) -> Result<T, ErrorResponse>;
+    fn internal_server_error<S: ToString>(self, context: S) -> Result<T, ErrorResponse>;
 }
 
-impl<T, E: fmt::Display> InternalServerError<T> for Result<T, E> {
-    fn internal_server_error(self) -> Result<T, ErrorResponse> {
-        self.map_err(|_| ErrorResponse::internal_server_error())
+impl<T, E: Error> InternalServerError<T> for Result<T, E> {
+    fn internal_server_error<S: ToString>(self, context: S) -> Result<T, ErrorResponse> {
+        self.into_report(context)
+            .log_error()
+            .map_err(|_| ErrorResponse::internal_server_error())
     }
 }
 
 impl<T> InternalServerError<T> for Option<T> {
-    fn internal_server_error(self) -> Result<T, ErrorResponse> {
-        self.ok_or_else(ErrorResponse::internal_server_error)
+    fn internal_server_error<S: ToString>(self, context: S) -> Result<T, ErrorResponse> {
+        self.into_report(context)
+            .log_error()
+            .map_err(|_| ErrorResponse::internal_server_error())
     }
 }
 
@@ -27,8 +32,10 @@ impl<T> InternalServerError<T> for Option<T> {
 /// A problem detailing part of the error response.
 pub struct Problem {
     /// A JSON path that identifies the part of the request that was the cause of the problem.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pointer: Option<String>,
     /// A human-readable explanation specific to this occurrence of the problem.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
 }
 impl Problem {

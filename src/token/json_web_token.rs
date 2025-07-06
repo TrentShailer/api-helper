@@ -3,9 +3,8 @@ use core::{error::Error, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use jiff::Timestamp;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::token::algorithm::Algorithm;
 
 /// A decoded JSON web token.
 #[derive(Debug, Clone)]
@@ -47,21 +46,44 @@ impl Header {
 /// The JSON web token claims.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Claims {
+    /// The ID of this specific token.
+    pub tid: String,
     /// The expiry of the JSON web token.
-    #[serde(with = "serde_msec")]
+    #[serde(with = "serde_sec")]
     pub exp: Timestamp,
-    /// The party that issued the JSON web token.
-    pub iss: String,
     /// The time when the JSON web token was issued.
-    #[serde(with = "serde_msec")]
+    #[serde(with = "serde_sec")]
     pub iat: Timestamp,
-    /// The time the JSON web token is valid from.
-    #[serde(with = "serde_msec")]
-    pub nbf: Timestamp,
     /// The subject of the token.
     pub sub: String,
-    /// The audience for the token.
-    pub aud: String,
+    /// The type of the token.
+    #[serde(flatten)]
+    pub typ: TokenType,
+}
+
+/// The type of token.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "typ")]
+#[non_exhaustive]
+pub enum TokenType {
+    /// A common token that grants the bearer authorisation for common actions.
+    Common,
+    /// A consent token that grants the bearer authorisation to perform a specific action.
+    Consent {
+        /// The action the bearer is authorised to perform.
+        act: String,
+    },
+    /// A token to granted when provisioning a new identity before any credentials have been added.
+    Provisioning,
+}
+
+/// Algorithms supported by this implementation.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub enum Algorithm {
+    /// ES256 algorithm.
+    ES256,
 }
 
 impl Claims {
@@ -80,48 +102,11 @@ impl Claims {
         Ok(header)
     }
 
-    /// Check if the claims are still valid. This checks:
-    /// * It is not expired.
-    /// * It is not premature.
-    /// * It was issued by a trusted issuer.
-    /// * It was given by the intended audience.
-    pub fn is_valid(&self, trusted_issuers: &[String], audience: &str) -> ClaimsValidationResult {
+    /// Returns if the token is expired.
+    pub fn is_expired(&self) -> bool {
         let now = Timestamp::now();
-
-        if self.exp < now {
-            return ClaimsValidationResult::Expired;
-        }
-
-        if self.nbf > now {
-            return ClaimsValidationResult::Premature;
-        }
-
-        if !trusted_issuers.contains(&self.iss) {
-            return ClaimsValidationResult::Untrusted;
-        }
-
-        if self.aud != audience {
-            return ClaimsValidationResult::WrongAudience;
-        }
-
-        ClaimsValidationResult::Valid
+        self.exp < now
     }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-#[non_exhaustive]
-/// The result of validating the claims.
-pub enum ClaimsValidationResult {
-    /// The claims are all valid.
-    Valid,
-    /// The token is expired.
-    Expired,
-    /// The token is premature.
-    Premature,
-    /// The token not issued by a trusted issuer.
-    Untrusted,
-    /// The token was given by the wrong audience.
-    WrongAudience,
 }
 
 /// Error variants for decoding claims/headers.
@@ -200,7 +185,7 @@ impl From<serde_json::Error> for EncodeError {
     }
 }
 
-mod serde_msec {
+mod serde_sec {
     use jiff::Timestamp;
     use serde::{Deserialize, Deserializer, Serializer, de};
 
@@ -208,7 +193,7 @@ mod serde_msec {
     where
         S: Serializer,
     {
-        serializer.serialize_i64(value.as_millisecond())
+        serializer.serialize_i64(value.as_second())
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Timestamp, D::Error>
@@ -217,7 +202,7 @@ mod serde_msec {
     {
         let value: i64 = Deserialize::deserialize(deserializer)?;
 
-        Timestamp::from_millisecond(value)
+        Timestamp::from_second(value)
             .map_err(|_| de::Error::custom(format!("{value} does not fit in a `jiff::Timestamp`")))
     }
 }

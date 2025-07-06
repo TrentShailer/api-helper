@@ -1,7 +1,7 @@
-use axum::{
-    extract::{FromRequestParts, OptionalFromRequestParts},
-    http::request::Parts,
-};
+use axum::extract::{FromRequestParts, OptionalFromRequestParts};
+use http::request::Parts;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::ErrorResponse;
 
@@ -9,24 +9,33 @@ use crate::ErrorResponse;
 pub struct ApiKey(pub String);
 
 /// Config for the trusted API keys.
-#[derive(Clone)]
-pub struct ApiKeyConfig {
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyValidationConfig {
     /// List of trusted API keys.
     pub allowed_api_keys: Vec<String>,
 
     /// The header to look for the API keys in.
     pub header: String,
 }
+impl Default for ApiKeyValidationConfig {
+    fn default() -> Self {
+        Self {
+            allowed_api_keys: Default::default(),
+            header: "X-TS-API-Key".to_string(),
+        }
+    }
+}
 
 /// Mark that some State has an API config.
-pub trait HasApiKeyConfig {
+pub trait HasApiKeyValidationConfig {
     /// Get the API config.
-    fn api_key_config(&self) -> &ApiKeyConfig;
+    fn api_key_config(&self) -> &ApiKeyValidationConfig;
 }
 
 impl<S> OptionalFromRequestParts<S> for ApiKey
 where
-    S: Send + Sync + HasApiKeyConfig,
+    S: Send + Sync + HasApiKeyValidationConfig,
 {
     type Rejection = ErrorResponse;
 
@@ -47,7 +56,7 @@ where
 
 impl<S> FromRequestParts<S> for ApiKey
 where
-    S: Send + Sync + HasApiKeyConfig,
+    S: Send + Sync + HasApiKeyValidationConfig,
 {
     type Rejection = ErrorResponse;
 

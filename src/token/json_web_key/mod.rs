@@ -9,12 +9,13 @@ pub use key_set_cache::JsonWebKeySetCache;
 pub use signing::SigningJsonWebKey;
 pub use verifying::VerifyingJsonWebKey;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::token::algorithm::Algorithm;
+use crate::token::Algorithm;
 
 /// A JSON web key used to verify signatures.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct JsonWebKey {
     /// The ID of this key.
     pub kid: String,
@@ -29,7 +30,7 @@ pub struct JsonWebKey {
 }
 
 /// The parameters that make up the key.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kty")]
 #[non_exhaustive]
 pub enum JsonWebKeyParameters {
@@ -45,7 +46,7 @@ pub enum JsonWebKeyParameters {
 }
 
 /// The curves supported by this implementation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[non_exhaustive]
 pub enum Curve {
     /// The Prime 256 curve.

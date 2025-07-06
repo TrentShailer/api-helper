@@ -8,21 +8,27 @@ use crate::webauthn::public_key_credential::{Hint, Transports, Type, UserVerific
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyCredentialRequestOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_credentials: Option<Vec<AllowCredentials>>,
-    #[serde(with = "super::serde_url_base64")]
-    pub challenge: Vec<u8>,
+    #[serde(with = "crate::maybe_serde_url_base64")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub challenge: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<Extensions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hints: Option<Vec<Hint>>,
     #[serde(rename = "rpId")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relying_party_id: Option<String>,
     pub timeout: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user_verification: Option<UserVerification>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AllowCredentials {
-    #[serde(with = "super::serde_url_base64")]
+    #[serde(with = "crate::serde_url_base64")]
     pub id: Vec<u8>,
     pub transports: Vec<Transports>,
     pub r#type: Type,

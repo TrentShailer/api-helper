@@ -11,7 +11,7 @@ use crate::webauthn::{
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AttestationResponse {
-    #[serde(with = "super::serde_url_base64")]
+    #[serde(with = "crate::serde_url_base64")]
     pub attestation_object: Vec<u8>,
 
     #[serde(rename = "clientDataJSON")]
@@ -25,7 +25,7 @@ pub struct AttestationResponse {
 #[serde(rename_all = "camelCase")]
 pub struct MethodResults {
     pub authenticator_data: AuthenticatorData,
-    #[serde(with = "super::serde_url_base64")]
+    #[serde(with = "crate::serde_url_base64")]
     pub public_key: Vec<u8>,
     pub public_key_algorithm: Algorithm,
     pub transports: Vec<Transports>,

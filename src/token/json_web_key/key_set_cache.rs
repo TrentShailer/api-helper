@@ -2,19 +2,18 @@
 use core::{error::Error, fmt};
 use std::{collections::HashMap, sync::Arc};
 
+use http::StatusCode;
 use jiff::{SignedDuration, Timestamp};
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use tokio::sync::RwLock;
 
 use crate::token::json_web_key::{JsonWebKeySet, VerifyingJsonWebKey, verifying};
 
 /// A cache for a JSON web key set.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct JsonWebKeySetCache {
     /// The URL to the JSON web key set.
-    pub url: String,
-    /// The web client used to fetch from the JSON web key set.
-    pub client: Client,
+    pub endpoint: String,
     /// The cached JSON web keys.
     pub cache: Arc<RwLock<HashMap<String, VerifyingJsonWebKey>>>,
     /// The time the cache was last refreshed.
@@ -23,17 +22,16 @@ pub struct JsonWebKeySetCache {
 
 impl JsonWebKeySetCache {
     /// Create a new cache.
-    pub fn new(jwks_url: String, client: Client) -> Self {
+    pub fn new(jwks_url: String) -> Self {
         Self {
-            url: jwks_url,
-            client,
+            endpoint: jwks_url,
             cache: Arc::new(RwLock::new(HashMap::new())),
             last_refresh: Arc::new(RwLock::new(Timestamp::UNIX_EPOCH)),
         }
     }
 
     /// Refresh the cache.
-    pub async fn refresh(&self) -> Result<(), RefreshCacheError> {
+    pub async fn refresh(&self, client: &Client) -> Result<(), RefreshCacheError> {
         let now = Timestamp::now();
 
         let last_refresh = self.last_refresh.read().await;
@@ -42,7 +40,13 @@ impl JsonWebKeySetCache {
         }
         drop(last_refresh);
 
-        let jwks: JsonWebKeySet = self.client.get(&self.url).send().await?.json().await?;
+        let jwks: JsonWebKeySet = client
+            .get(&self.endpoint)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
 
         let mut cache = self.cache.write().await;
 

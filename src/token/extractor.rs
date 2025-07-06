@@ -1,11 +1,9 @@
 //! Extractor for extracting and verifying the JWT token from the request.
-use axum::{
-    extract::{FromRequestParts, OptionalFromRequestParts},
-    http::request::Parts,
-};
+use axum::extract::{FromRequestParts, OptionalFromRequestParts};
+use http::{StatusCode, request::Parts};
 
 use crate::{
-    ErrorResponse, InternalServerError,
+    ErrorResponse, HasHttpClient, InternalServerError,
     token::{JsonWebKeySetCache, JsonWebToken, json_web_token::Header},
 };
 
@@ -15,12 +13,19 @@ pub trait HasKeySetCache {
     fn jwks_cache(&self) -> &JsonWebKeySetCache;
 }
 
+/// Marker trait for if some state has a token revocation endpoint.
+pub trait HasRevocationEndpoint {
+    /// The endpoint to check if a token has been revoked.
+    /// Will have `/{jwt.claims.tid}` appended to it.
+    fn revocation_endpoint(&self) -> &str;
+}
+
 /// Extractor for extracting and verifying the JSON web token token from the request.
 pub struct Token(pub JsonWebToken);
 
 impl<S> OptionalFromRequestParts<S> for Token
 where
-    S: Send + Sync + HasKeySetCache,
+    S: Send + Sync + HasKeySetCache + HasRevocationEndpoint + HasHttpClient,
 {
     type Rejection = ErrorResponse;
 
@@ -39,7 +44,7 @@ where
 
 impl<S> FromRequestParts<S> for Token
 where
-    S: Send + Sync + HasKeySetCache,
+    S: Send + Sync + HasKeySetCache + HasRevocationEndpoint + HasHttpClient,
 {
     type Rejection = ErrorResponse;
 
@@ -68,7 +73,11 @@ where
         };
 
         if !cache_contains_key {
-            state.jwks_cache().refresh().await.internal_server_error()?;
+            state
+                .jwks_cache()
+                .refresh(state.http_client())
+                .await
+                .internal_server_error("refresh cache")?;
         }
 
         let cache_lock = state.jwks_cache().cache.read().await;
@@ -77,11 +86,38 @@ where
             .ok_or_else(ErrorResponse::unauthenticated)?;
 
         let jwt = decoding_jwk
-            .jwk
-            .alg
-            .verify(token, &decoding_jwk.key)
-            .internal_server_error()?
+            .verify(token)
+            .internal_server_error("verify token")?
             .ok_or_else(ErrorResponse::unauthenticated)?;
+
+        if jwt.claims.is_expired() {
+            return Err(ErrorResponse::unauthenticated());
+        }
+
+        let is_revoked = {
+            let endpoint = format!("{}/{}", state.revocation_endpoint(), jwt.claims.tid);
+
+            let status = state
+                .http_client()
+                .get(&endpoint)
+                .send()
+                .await
+                .internal_server_error("get revocation endpoint")?
+                .status();
+
+            match status {
+                StatusCode::NOT_FOUND => false,
+                StatusCode::OK => true,
+                status => {
+                    log::error!("received status {status} from revocation endpoint");
+                    return Err(ErrorResponse::internal_server_error());
+                }
+            }
+        };
+
+        if is_revoked {
+            return Err(ErrorResponse::unauthenticated());
+        }
 
         Ok(Self(jwt))
     }

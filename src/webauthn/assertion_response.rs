@@ -15,11 +15,11 @@ pub struct AssertionResponse {
     pub client_data_json: ClientDataJson,
 
     /// An assertion signature over `authenticator_data` and `client_data_json`.
-    #[serde(with = "super::serde_url_base64")]
+    #[serde(with = "crate::serde_url_base64")]
     pub signature: Vec<u8>,
 
     /// Specified as the `user.id` in the options passed to the originating `PublicKeyCredentialCreationOptions`.
-    #[serde(with = "super::serde_url_base64")]
+    #[serde(with = "crate::serde_url_base64")]
     pub user_handle: Vec<u8>,
 }
 
@@ -50,7 +50,7 @@ impl<'de> Deserialize<'de> for AuthenticatorData {
     {
         let base64: &str = Deserialize::deserialize(deserializer)?;
         let bytes = Base64UrlUnpadded::decode_vec(base64).map_err(de::Error::custom)?;
-        if bytes.len() < 38 {
+        if bytes.len() < 37 {
             return Err(de::Error::custom(
                 "authenticator data must be at least 37 bytes",
             ));
@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for AuthenticatorData {
         let flags = Flags(bytes[32]);
 
         let mut signature_counter_bytes = [0u8; 4];
-        signature_counter_bytes.copy_from_slice(&bytes[33..38]);
+        signature_counter_bytes.copy_from_slice(&bytes[33..37]);
         let signature_counter = u32::from_le_bytes(signature_counter_bytes); // TODO LE or BE
 
         Ok(Self {

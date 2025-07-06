@@ -6,16 +6,20 @@ use jiff::Timestamp;
 use openssl::{
     bn::BigNum,
     ec::{EcGroup, EcKey},
+    hash::MessageDigest,
     nid::Nid,
     pkey::{PKey, Public},
+    sign::Verifier,
 };
 
 use crate::token::{
-    JsonWebKey,
+    Algorithm, JsonWebKey, JsonWebToken,
     json_web_key::{Curve, JsonWebKeyParameters},
+    json_web_token::{Claims, DecodeError, Header},
 };
 
 /// A JSON web key used to verify a signed token.
+#[derive(Debug)]
 pub struct VerifyingJsonWebKey {
     /// The JSON web key.
     pub jwk: JsonWebKey,
@@ -24,7 +28,50 @@ pub struct VerifyingJsonWebKey {
     /// The public key derived from the JSON web key.
     pub key: PKey<Public>,
 }
+impl VerifyingJsonWebKey {
+    /// Verify a given token.
+    pub fn verify(&self, token: &str) -> Result<Option<JsonWebToken>, VerifyError> {
+        let mut verifier = match self.jwk.alg {
+            Algorithm::ES256 => {
+                Verifier::new(MessageDigest::sha256(), &self.key).map_err(|source| {
+                    VerifyError::VerifierOperation {
+                        source,
+                        operation: "create",
+                    }
+                })?
+            }
+        };
 
+        let (contents, signature) = token
+            .rsplit_once('.')
+            .ok_or_else(|| VerifyError::InvalidFormat)?;
+
+        let signature_bytes = Base64UrlUnpadded::decode_vec(signature)
+            .map_err(|source| VerifyError::DecodeSignature { source })?;
+
+        let is_valid = verifier
+            .verify_oneshot(&signature_bytes, contents.as_bytes())
+            .map_err(|source| VerifyError::VerifierOperation {
+                source,
+                operation: "verify",
+            })?;
+
+        if !is_valid {
+            return Ok(None);
+        }
+
+        let (header, claims) = contents
+            .split_once('.')
+            .ok_or_else(|| VerifyError::InvalidFormat)?;
+
+        let header =
+            Header::decode(header).map_err(|source| VerifyError::DecodeHeader { source })?;
+        let claims =
+            Claims::decode(claims).map_err(|source| VerifyError::DecodeClaims { source })?;
+
+        Ok(Some(JsonWebToken { header, claims }))
+    }
+}
 impl TryFrom<JsonWebKey> for VerifyingJsonWebKey {
     type Error = FromJwkError;
 
@@ -181,6 +228,69 @@ impl Error for EcFromJwkError {
             Self::BigNumFromCoordinate { source, .. } => Some(source),
             Self::CreateEcKey { source, .. } => Some(source),
             Self::CreatePKey { source, .. } => Some(source),
+        }
+    }
+}
+
+/// Error variants for verifying the JWT.
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum VerifyError {
+    /// An OpenSSL operation failed.
+    #[non_exhaustive]
+    VerifierOperation {
+        /// The source of this error.
+        source: openssl::error::ErrorStack,
+        /// The operation that failed.
+        operation: &'static str,
+    },
+
+    /// Decoding the header failed.
+    #[non_exhaustive]
+    DecodeHeader {
+        /// The source of this error.
+        source: DecodeError,
+    },
+
+    /// Decoding the claims failed.
+    #[non_exhaustive]
+    DecodeClaims {
+        /// The source of the error.
+        source: DecodeError,
+    },
+
+    /// Decoding the signature failed.
+    #[non_exhaustive]
+    DecodeSignature {
+        /// The source of the error.
+        source: base64ct::Error,
+    },
+
+    /// The header string was not in the expected format for JWTs.
+    #[non_exhaustive]
+    InvalidFormat,
+}
+impl fmt::Display for VerifyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            Self::VerifierOperation { operation, .. } => {
+                write!(f, "OpenSSL verifier {operation} operation failed")
+            }
+            Self::DecodeHeader { .. } => write!(f, "JWT header could not be decoded"),
+            Self::DecodeClaims { .. } => write!(f, "JWT claims could not be decoded"),
+            Self::DecodeSignature { .. } => write!(f, "JWT signature could not be decoded"),
+            Self::InvalidFormat { .. } => write!(f, "token is not a valid JWS string"),
+        }
+    }
+}
+impl Error for VerifyError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            Self::VerifierOperation { source, .. } => Some(source),
+            Self::DecodeHeader { source, .. } => Some(source),
+            Self::DecodeClaims { source, .. } => Some(source),
+            Self::DecodeSignature { source, .. } => Some(source),
+            _ => None,
         }
     }
 }

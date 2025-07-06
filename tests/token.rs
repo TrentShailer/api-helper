@@ -1,36 +1,19 @@
 #![allow(missing_docs, non_snake_case)]
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use jiff::Timestamp;
 use openssl::{
     bn::{BigNum, BigNumContext},
     ec::EcGroup,
     nid::Nid,
 };
 use ts_api_helper::token::{
-    Algorithm, JsonWebKey, JsonWebToken, SigningJsonWebKey, VerifyingJsonWebKey,
+    Algorithm, JsonWebKey, SigningJsonWebKey, VerifyingJsonWebKey,
     json_web_key::{Curve, JsonWebKeyParameters},
-    json_web_token::{Claims, ClaimsValidationResult, Header},
+    json_web_token::TokenType,
 };
 
 #[test]
 fn SignToken_EC_IsCorrect() {
-    let token = JsonWebToken {
-        header: Header {
-            alg: Algorithm::ES256,
-            kid: "1".to_string(),
-            typ: "sig".to_string(),
-        },
-        claims: Claims {
-            exp: Timestamp::MAX,
-            iss: "issuer".to_string(),
-            iat: Timestamp::now(),
-            nbf: Timestamp::now(),
-            sub: "subject".to_string(),
-            aud: "audience".to_string(),
-        },
-    };
-
     let ec_key =
         openssl::ec::EcKey::generate(&EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).unwrap())
             .unwrap();
@@ -65,24 +48,21 @@ fn SignToken_EC_IsCorrect() {
 
     assert!(signing_key.key.public_eq(&verifying_key.key));
 
-    let signature = signing_key.jwk.alg.sign(&token, &signing_key.key).unwrap();
+    let (token, signature) = signing_key
+        .issue(
+            "subject".to_string(),
+            TokenType::Consent {
+                act: "Action".to_string(),
+            },
+        )
+        .unwrap();
     let header = token.header.encode().unwrap();
     let claims = token.claims.encode().unwrap();
 
     let decoded_jwt = verifying_key
-        .jwk
-        .alg
-        .verify(
-            &format!("{header}.{claims}.{signature}"),
-            &verifying_key.key,
-        )
+        .verify(&format!("{header}.{claims}.{signature}"))
         .unwrap()
         .unwrap();
 
-    assert_eq!(
-        ClaimsValidationResult::Valid,
-        decoded_jwt
-            .claims
-            .is_valid(&["issuer".to_string()], "audience")
-    );
+    assert!(!decoded_jwt.claims.is_expired());
 }

@@ -1,14 +1,23 @@
 //! A JSON web key used to sign a JSON web token.
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, time::Duration};
 
-use openssl::pkey::{Id, PKey, Private};
+use base64ct::{Base64UrlUnpadded, Encoding};
+use jiff::Timestamp;
+use openssl::{
+    hash::MessageDigest,
+    pkey::{Id, PKey, Private},
+    sign::Signer,
+};
+use uuid::Uuid;
 
 use crate::token::{
-    JsonWebKey, VerifyingJsonWebKey,
+    Algorithm, JsonWebKey, JsonWebToken, VerifyingJsonWebKey,
     json_web_key::{JsonWebKeyParameters, verifying},
+    json_web_token::{Claims, EncodeError, Header, TokenType},
 };
 
 /// A JSON web key used to sign a JSON web token.
+#[derive(Debug)]
 pub struct SigningJsonWebKey {
     /// The JSON web key.
     pub jwk: JsonWebKey,
@@ -50,6 +59,78 @@ impl SigningJsonWebKey {
             jwk,
             key: private_key,
         })
+    }
+
+    /// Issue a new token of the given type for a subject.
+    pub fn issue(
+        &self,
+        subject: String,
+        token_type: TokenType,
+    ) -> Result<(JsonWebToken, String), SigningError> {
+        let exp = match token_type {
+            TokenType::Common => Timestamp::now() + Duration::from_secs(60 * 60 * 24 * 30),
+            TokenType::Consent { .. } => Timestamp::now() + Duration::from_secs(60 * 5),
+            TokenType::Provisioning => Timestamp::now() + Duration::from_secs(60 * 60 * 4),
+        };
+
+        let token = JsonWebToken {
+            header: Header {
+                alg: self.jwk.alg.clone(),
+                typ: "JWT".to_string(),
+                kid: self.jwk.kid.clone(),
+            },
+            claims: Claims {
+                tid: Uuid::new_v4().to_string(),
+                exp,
+                iat: Timestamp::now(),
+                sub: subject,
+                typ: token_type,
+            },
+        };
+
+        let mut signer = match self.jwk.alg {
+            Algorithm::ES256 => {
+                Signer::new(MessageDigest::sha256(), &self.key).map_err(|source| {
+                    SigningError::SignerOperation {
+                        source,
+                        operation: "create",
+                    }
+                })?
+            }
+        };
+
+        let contents = format!(
+            "{}.{}",
+            token
+                .header
+                .encode()
+                .map_err(|source| SigningError::EncodeHeader { source })?,
+            token
+                .claims
+                .encode()
+                .map_err(|source| SigningError::EncodeClaims { source })?,
+        );
+
+        let mut signature_buffer = vec![
+            0u8;
+            signer.len().map_err(|source| {
+                SigningError::SignerOperation {
+                    source,
+                    operation: "length",
+                }
+            })?
+        ];
+
+        let signature_size = signer
+            .sign_oneshot(&mut signature_buffer, contents.as_bytes())
+            .map_err(|source| SigningError::SignerOperation {
+                source,
+                operation: "sign",
+            })?;
+
+        let signature = Base64UrlUnpadded::encode_string(&signature_buffer[..signature_size]);
+
+        Ok((token, signature))
     }
 }
 
@@ -132,3 +213,51 @@ impl fmt::Display for MismatchKind {
     }
 }
 impl Error for MismatchKind {}
+
+/// Error variants for signing the JWT.
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum SigningError {
+    /// And OpenSSL operation failed.
+    #[non_exhaustive]
+    SignerOperation {
+        /// The source of the error.
+        source: openssl::error::ErrorStack,
+        /// The operation that failed.
+        operation: &'static str,
+    },
+
+    /// The JWT header could not be encoded.
+    #[non_exhaustive]
+    EncodeHeader {
+        /// The source of the error.
+        source: EncodeError,
+    },
+
+    /// The JWT claims could not be encoded.
+    #[non_exhaustive]
+    EncodeClaims {
+        /// The source of the error.
+        source: EncodeError,
+    },
+}
+impl fmt::Display for SigningError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            Self::SignerOperation { operation, .. } => {
+                write!(f, "OpenSSL signer {operation} operation failed")
+            }
+            Self::EncodeHeader { .. } => write!(f, "JWT header could not be encoded"),
+            Self::EncodeClaims { .. } => write!(f, "JWT claims could not be encoded"),
+        }
+    }
+}
+impl Error for SigningError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            Self::SignerOperation { source, .. } => Some(source),
+            Self::EncodeHeader { source, .. } => Some(source),
+            Self::EncodeClaims { source, .. } => Some(source),
+        }
+    }
+}
