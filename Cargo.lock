@@ -1727,7 +1727,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "ts-api-helper"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "axum",
  "base64ct",
@@ -1744,6 +1744,7 @@ dependencies = [
  "serde_repr",
  "tokio",
  "tokio-postgres",
+ "tower-http",
  "ts-rust-helper",
  "ts-sql-helper-lib",
  "uuid",

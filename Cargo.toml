@@ -5,11 +5,12 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 name = "ts-api-helper"
 rust-version = "1.88"
-version = "0.4.0"
+version = "0.5.0"
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["json", "macros"] }
 tokio = { version = "1.45", default-features = false, features = ["sync"] }
+tower-http = { version = "0.6", features = ["cors"] }
 
 http = "1"
 jiff = { version = "0.2", features = ["serde"] }
@@ -39,12 +40,12 @@ vendor-openssl = ["openssl/vendored"]
 
 [lints.rust]
 "missing_docs" = "warn"
-"rust_2018_idioms" = "warn"
 "unused_qualifications" = "warn"
 
 [lints.clippy]
 "as_conversions" = "warn"
 "cast_lossless" = "warn"
+"dbg" = "warn"
 "exhaustive_enums" = "warn"
 "inconsistent_struct_constructor" = "warn"
 "todo" = "warn"
