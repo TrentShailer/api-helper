@@ -144,7 +144,8 @@ impl PublicKeyCredential {
 
         // If the challenge is associated with an identity, ensure it matches the assertion.
         if let Some(identity_id) = challenge.identity_id
-            && identity_id != response.user_handle
+            && let Some(user_handle) = response.user_handle.as_deref()
+            && identity_id != user_handle
         {
             return Ok(false);
         }
@@ -159,7 +160,9 @@ impl PublicKeyCredential {
         };
 
         // Ensure key belongs to the asserted ID.
-        if persisted_public_key.identity_id != response.user_handle {
+        if let Some(user_handle) = response.user_handle.as_deref()
+            && persisted_public_key.identity_id != user_handle
+        {
             return Ok(false);
         }
 

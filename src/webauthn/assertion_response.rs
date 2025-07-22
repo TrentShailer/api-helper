@@ -19,8 +19,8 @@ pub struct AssertionResponse {
     pub signature: Vec<u8>,
 
     /// Specified as the `user.id` in the options passed to the originating `PublicKeyCredentialCreationOptions`.
-    #[serde(with = "crate::serde_url_base64")]
-    pub user_handle: Vec<u8>, // TODO technically optional
+    #[serde(with = "crate::maybe_serde_url_base64")]
+    pub user_handle: Option<Vec<u8>>,
 }
 
 #[derive(Debug)]

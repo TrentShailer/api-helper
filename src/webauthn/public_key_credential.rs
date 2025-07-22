@@ -16,7 +16,7 @@ use crate::webauthn::{
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyCredential {
-    pub authenticator_attachment: AuthenticatorAttachment,
+    pub authenticator_attachment: Option<AuthenticatorAttachment>,
     pub id: String,
     #[serde(with = "crate::serde_url_base64")]
     pub raw_id: Vec<u8>,
