@@ -20,7 +20,7 @@ pub struct AssertionResponse {
 
     /// Specified as the `user.id` in the options passed to the originating `PublicKeyCredentialCreationOptions`.
     #[serde(with = "crate::serde_url_base64")]
-    pub user_handle: Vec<u8>,
+    pub user_handle: Vec<u8>, // TODO technically optional
 }
 
 #[derive(Debug)]

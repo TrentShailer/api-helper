@@ -167,7 +167,7 @@ impl PublicKeyCredential {
         let contents = {
             let authenticator_data_length = response.authenticator_data.raw.len();
 
-            let mut data = Vec::with_capacity(authenticator_data_length + 32);
+            let mut data = vec![0u8; authenticator_data_length + 32];
 
             data[..authenticator_data_length].copy_from_slice(&response.authenticator_data.raw);
             data[authenticator_data_length..]
