@@ -10,6 +10,19 @@ use crate::webauthn::{
     public_key_credential::{Algorithm, ClientDataType, PublicKeyCredential, Response},
 };
 
+/// The result of verification
+#[allow(clippy::exhaustive_enums)]
+pub enum VerificationResult {
+    /// The verification was valid and for this identity.
+    Valid {
+        /// The ID of the identity this verification is for.
+        identity_id: Vec<u8>,
+    },
+
+    /// Invalid verification.
+    Invalid,
+}
+
 /// Methods required to verify a public key credential.
 pub trait Verifier: fmt::Debug {
     /// The errors that may be returned.
@@ -37,7 +50,7 @@ impl PublicKeyCredential {
         &self,
         verifier: &V,
         bearer: Option<&[u8]>,
-    ) -> Result<bool, VerificationError<V>> {
+    ) -> Result<VerificationResult, VerificationError<V>> {
         match &self.response {
             Response::AttestationResponse(_) => self.verify_attestation(verifier, bearer).await,
             Response::AssertionResponse(_) => self.verify_assertion(verifier, bearer).await,
@@ -48,7 +61,7 @@ impl PublicKeyCredential {
         &self,
         verifier: &V,
         bearer: Option<&[u8]>,
-    ) -> Result<bool, VerificationError<V>> {
+    ) -> Result<VerificationResult, VerificationError<V>> {
         let Response::AttestationResponse(response) = &self.response else {
             unreachable!(
                 "`verify_attestation` MUST only be called when the response is an attestation response."
@@ -58,13 +71,13 @@ impl PublicKeyCredential {
         // Ensure the response type is correct
         if response.client_data_json.r#type != ClientDataType::WebAuthNCreate {
             log::warn!("credential is not create");
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
-        if bearer.is_none() {
+        let Some(bearer) = bearer else {
             log::warn!("bearer is none");
-            return Ok(false);
-        }
+            return Ok(VerificationResult::Invalid);
+        };
 
         // Verify the challenge exists, is valid, is for the origin, and is associated with an identity.
         if verifier
@@ -75,14 +88,14 @@ impl PublicKeyCredential {
                 !challenge.is_valid()
                     || !challenge.is_for_origin(&response.client_data_json.origin)
                     || challenge.identity_id.is_none()
-                    || !challenge.is_for_bearer(bearer)
+                    || !challenge.is_for_bearer(Some(bearer))
             })
         {
             log::warn!(
                 "challenge is none, is not valid, is not for this origin, has no identity, or is not for this bearer"
             );
 
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         };
 
         // Verify the public key is valid
@@ -90,24 +103,26 @@ impl PublicKeyCredential {
             Ok(key) => key,
             Err(_) => {
                 log::warn!("public key is invalid");
-                return Ok(false);
+                return Ok(VerificationResult::Invalid);
             }
         };
 
         // Ensure the key matches the algorithm
         if key.id() != response.method_results.public_key_algorithm.id() {
             log::warn!("algorithm does not match");
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
-        Ok(true)
+        Ok(VerificationResult::Valid {
+            identity_id: bearer.to_vec(),
+        })
     }
 
     async fn verify_assertion<V: Verifier>(
         &self,
         verifier: &V,
         bearer: Option<&[u8]>,
-    ) -> Result<bool, VerificationError<V>> {
+    ) -> Result<VerificationResult, VerificationError<V>> {
         let Response::AssertionResponse(response) = &self.response else {
             unreachable!(
                 "`verify_assertion` MUST only be called when the response is an assertion response."
@@ -116,13 +131,13 @@ impl PublicKeyCredential {
 
         // Ensure the response type is correct
         if response.client_data_json.r#type != ClientDataType::WebAuthNGet {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
         // Check that the Relying Party ID is the one expected for this service.
         let expected_hash = sha256(verifier.relying_party_id().as_bytes());
         if response.authenticator_data.relying_party_id_hash != expected_hash {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
         // Verify the challenge exists
@@ -131,7 +146,7 @@ impl PublicKeyCredential {
             .await
             .map_err(|source| VerificationError::GetChallenge { source })?
         else {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         };
 
         // Verify the challenge is valid, and is for the origin.
@@ -139,7 +154,7 @@ impl PublicKeyCredential {
             || !challenge.is_for_origin(&response.client_data_json.origin)
             || !challenge.is_for_bearer(bearer)
         {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         };
 
         // If the challenge is associated with an identity, ensure it matches the assertion.
@@ -147,7 +162,7 @@ impl PublicKeyCredential {
             && let Some(user_handle) = response.user_handle.as_deref()
             && identity_id != user_handle
         {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
         // Using the public key that was stored during the registration request to validate the signature by the authenticator.
@@ -156,14 +171,14 @@ impl PublicKeyCredential {
             .await
             .map_err(|source| VerificationError::GetPublicKey { source })?
         else {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         };
 
         // Ensure key belongs to the asserted ID.
         if let Some(user_handle) = response.user_handle.as_deref()
             && persisted_public_key.identity_id != user_handle
         {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
         // Get data to verify against
@@ -215,10 +230,12 @@ impl PublicKeyCredential {
             .map_err(|source| VerificationError::VerifierError { source })?;
 
         if !is_valid {
-            return Ok(false);
+            return Ok(VerificationResult::Invalid);
         }
 
-        Ok(true)
+        Ok(VerificationResult::Valid {
+            identity_id: persisted_public_key.identity_id,
+        })
     }
 }
 
