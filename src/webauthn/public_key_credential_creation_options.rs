@@ -17,7 +17,7 @@ pub struct PublicKeyCredentialCreationOptions {
     pub attestation_formats: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authenticator_selection: Option<AuthenticatorSelection>,
-    #[serde(with = "crate::maybe_serde_url_base64")]
+    #[serde(with = "crate::maybe_serde_base64")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub challenge: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,7 +70,7 @@ pub enum ResidentKey {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExcludeCredentials {
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub id: Vec<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transports: Option<Vec<Transports>>,
@@ -98,7 +98,7 @@ pub struct RelyingParty {
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub display_name: String,
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub id: Vec<u8>,
     pub name: String,
 }

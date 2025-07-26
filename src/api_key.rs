@@ -72,7 +72,7 @@ where
             .to_owned();
 
         if !config.allowed_api_keys.contains(&header) {
-            return Err(ErrorResponse::unauthenticated());
+            return Err(ErrorResponse::forbidden());
         }
 
         Ok(Self(header))

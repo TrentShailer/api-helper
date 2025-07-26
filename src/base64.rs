@@ -1,7 +1,7 @@
 use base64ct::{Base64UrlUnpadded, Encoding};
 
 /// Serde helper for serializing bytes to and from base 64.
-pub mod serde_url_base64 {
+pub mod serde_base64 {
     use base64ct::{Base64UrlUnpadded, Encoding};
     use serde::{Deserialize, Deserializer, Serializer, de};
 
@@ -25,7 +25,7 @@ pub mod serde_url_base64 {
 }
 
 /// Serde helper for maybe serializing bytes to and from base 64.
-pub mod maybe_serde_url_base64 {
+pub mod maybe_serde_base64 {
     use base64ct::{Base64UrlUnpadded, Encoding};
     use serde::{Deserialize, Deserializer, Serializer, de};
 

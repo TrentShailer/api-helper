@@ -10,18 +10,18 @@ use crate::webauthn::public_key_credential::{Algorithm, Transports};
 #[serde(rename_all = "camelCase")]
 pub struct PersistedPublicKey {
     /// The raw ID of the public key.
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub raw_id: Vec<u8>,
 
     /// The ID of the identity associated with this public key.
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub identity_id: Vec<u8>,
 
     /// The user's display name for this public key.
     pub display_name: String,
 
     /// The public key DER.
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub public_key: Vec<u8>,
 
     /// The public key algorithm.

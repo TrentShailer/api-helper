@@ -4,7 +4,7 @@ use http::{StatusCode, request::Parts};
 
 use crate::{
     ErrorResponse, HasHttpClient, InternalServerError,
-    token::{JsonWebKeySetCache, JsonWebToken, json_web_token::Header},
+    token::{JsonWebKeySetCache, JsonWebToken},
 };
 
 /// Marker trait for if some state has a JSON web key set cache.
@@ -62,14 +62,12 @@ where
 
         let token = &header[7..];
 
-        let (header, _) = token
-            .split_once('.')
-            .ok_or_else(ErrorResponse::unauthenticated)?;
-        let header = Header::decode(header).map_err(|_| ErrorResponse::unauthenticated())?;
+        let token =
+            JsonWebToken::deserialize(token).ok_or_else(|| ErrorResponse::unauthenticated())?;
 
         let cache_contains_key = {
             let cache_lock = state.jwks_cache().cache.read().await;
-            cache_lock.contains_key(&header.kid)
+            cache_lock.contains_key(&token.header.kid)
         };
 
         if !cache_contains_key {
@@ -77,32 +75,31 @@ where
                 .jwks_cache()
                 .refresh(state.http_client())
                 .await
-                .internal_server_error("refresh cache")?;
+                .internal_server_error()?;
         }
 
         let cache_lock = state.jwks_cache().cache.read().await;
         let decoding_jwk = cache_lock
-            .get(&header.kid)
+            .get(&token.header.kid)
             .ok_or_else(ErrorResponse::unauthenticated)?;
 
-        let jwt = decoding_jwk
-            .verify(token)
-            .internal_server_error("verify token")?
-            .ok_or_else(ErrorResponse::unauthenticated)?;
+        if !decoding_jwk.verify(&token).internal_server_error()? {
+            return Err(ErrorResponse::unauthenticated());
+        }
 
-        if jwt.claims.is_expired() {
+        if token.claims.is_expired() {
             return Err(ErrorResponse::unauthenticated());
         }
 
         let is_revoked = {
-            let endpoint = format!("{}/{}", state.revocation_endpoint(), jwt.claims.tid);
+            let endpoint = format!("{}/{}", state.revocation_endpoint(), token.claims.tid);
 
             let status = state
                 .http_client()
                 .get(&endpoint)
                 .send()
                 .await
-                .internal_server_error("get revocation endpoint")?
+                .internal_server_error()?
                 .status();
 
             match status {
@@ -119,6 +116,6 @@ where
             return Err(ErrorResponse::unauthenticated());
         }
 
-        Ok(Self(jwt))
+        Ok(Self(token))
     }
 }

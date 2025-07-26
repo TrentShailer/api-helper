@@ -1,5 +1,4 @@
 //! A decoded JSON web token.
-use core::{error::Error, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use jiff::Timestamp;
@@ -13,10 +12,41 @@ pub struct JsonWebToken {
     pub header: Header,
     /// The JWT claims.
     pub claims: Claims,
+    /// The JWS signature.
+    pub signature: Vec<u8>,
+}
+
+impl JsonWebToken {
+    /// Serialize the token as a JWT string.
+    pub fn serialize(&self) -> String {
+        let header = self.header.encode();
+        let claims = self.claims.encode();
+        let signature = Base64UrlUnpadded::encode_string(&self.signature);
+
+        format!("{header}.{claims}.{signature}")
+    }
+
+    /// Deserialize the token from a JWT string.
+    pub fn deserialize(value: &str) -> Option<Self> {
+        let mut parts = value.split(".");
+        let header = parts.next()?;
+        let claims = parts.next()?;
+        let signature = parts.next()?;
+
+        let header = serde_json::from_slice(&Base64UrlUnpadded::decode_vec(header).ok()?).ok()?;
+        let claims = serde_json::from_slice(&Base64UrlUnpadded::decode_vec(claims).ok()?).ok()?;
+        let signature = Base64UrlUnpadded::decode_vec(signature).ok()?;
+
+        Some(Self {
+            header,
+            claims,
+            signature,
+        })
+    }
 }
 
 /// The JWT header.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Header {
     /// The algorithm used to sign the JSON web token.
     pub alg: Algorithm,
@@ -28,18 +58,9 @@ pub struct Header {
 
 impl Header {
     /// Encode the JSON representation of the header as URL Base64.
-    pub fn encode(&self) -> Result<String, EncodeError> {
-        let json = serde_json::to_string(&self)?;
-        Ok(Base64UrlUnpadded::encode_string(json.as_bytes()))
-    }
-
-    /// Decode the header from URL Base64 encoded JSON.
-    pub fn decode(value: &str) -> Result<Self, DecodeError> {
-        let bytes = Base64UrlUnpadded::decode_vec(value)?;
-
-        let header = serde_json::from_slice(&bytes)?;
-
-        Ok(header)
+    pub fn encode(&self) -> String {
+        let json = serde_json::to_vec(&self).expect("serializing the header should never fail");
+        Base64UrlUnpadded::encode_string(&json)
     }
 }
 
@@ -88,100 +109,15 @@ pub enum Algorithm {
 
 impl Claims {
     /// Encode the JSON representation of the claims as URL base64.
-    pub fn encode(&self) -> Result<String, EncodeError> {
-        let json = serde_json::to_string(&self)?;
-        Ok(Base64UrlUnpadded::encode_string(json.as_bytes()))
-    }
-
-    /// Decode the claims from URL base64 encoded JSON.
-    pub fn decode(value: &str) -> Result<Self, DecodeError> {
-        let bytes = Base64UrlUnpadded::decode_vec(value)?;
-
-        let header = serde_json::from_slice(&bytes)?;
-
-        Ok(header)
+    pub fn encode(&self) -> String {
+        let json = serde_json::to_vec(&self).expect("serializing the claims should never fail");
+        Base64UrlUnpadded::encode_string(&json)
     }
 
     /// Returns if the token is expired.
     pub fn is_expired(&self) -> bool {
         let now = Timestamp::now();
         self.exp < now
-    }
-}
-
-/// Error variants for decoding claims/headers.
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum DecodeError {
-    /// The decoded JSON string could not be deserialized to the target type.
-    #[non_exhaustive]
-    JsonDeserialize {
-        /// The source of this error.
-        source: serde_json::Error,
-    },
-
-    /// The Base64 could not be decoded.
-    #[non_exhaustive]
-    Base64Decode {
-        /// The source of this error.
-        source: base64ct::Error,
-    },
-}
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Self::JsonDeserialize { .. } => write!(f, "decoded JSON is invalid"),
-            Self::Base64Decode { .. } => write!(f, "value is invalid base64"),
-        }
-    }
-}
-impl Error for DecodeError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match &self {
-            Self::JsonDeserialize { source, .. } => Some(source),
-            Self::Base64Decode { source, .. } => Some(source),
-        }
-    }
-}
-impl From<serde_json::Error> for DecodeError {
-    fn from(source: serde_json::Error) -> Self {
-        Self::JsonDeserialize { source }
-    }
-}
-impl From<base64ct::Error> for DecodeError {
-    fn from(source: base64ct::Error) -> Self {
-        Self::Base64Decode { source }
-    }
-}
-
-/// Error variants for encoding a header/claims.
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum EncodeError {
-    /// The value failed to be serialized to JSON.
-    #[non_exhaustive]
-    JsonSerialize {
-        /// The source of the error.
-        source: serde_json::Error,
-    },
-}
-impl fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Self::JsonSerialize { .. } => write!(f, "value could not be serialized to JSON"),
-        }
-    }
-}
-impl Error for EncodeError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match &self {
-            Self::JsonSerialize { source, .. } => Some(source),
-        }
-    }
-}
-impl From<serde_json::Error> for EncodeError {
-    fn from(source: serde_json::Error) -> Self {
-        Self::JsonSerialize { source }
     }
 }
 

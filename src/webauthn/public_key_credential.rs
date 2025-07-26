@@ -18,7 +18,7 @@ use crate::webauthn::{
 pub struct PublicKeyCredential {
     pub authenticator_attachment: Option<AuthenticatorAttachment>,
     pub id: String,
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub raw_id: Vec<u8>,
     pub response: Response,
 }
@@ -43,7 +43,7 @@ pub enum Response {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientDataJson {
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub challenge: Vec<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cross_origin: Option<bool>,
@@ -70,7 +70,7 @@ impl<'de> Deserialize<'de> for ClientDataJson {
     {
         #[derive(Debug, Deserialize)]
         struct RealData {
-            #[serde(with = "crate::serde_url_base64")]
+            #[serde(with = "crate::serde_base64")]
             pub challenge: Vec<u8>,
             pub cross_origin: Option<bool>,
             pub origin: String,
@@ -234,7 +234,7 @@ impl TryFrom<i32> for Algorithm {
 pub struct TryFromI32Error(i32);
 impl fmt::Display for TryFromI32Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "value {} is not a valid Algorithm", self.0)
+        write!(f, "value {} is not a supported Algorithm", self.0)
     }
 }
 impl Error for TryFromI32Error {}

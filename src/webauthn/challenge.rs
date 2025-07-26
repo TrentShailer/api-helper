@@ -8,10 +8,10 @@ use ts_sql_helper_lib::{FromRow, SqlTimestamp};
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Challenge {
     /// The challenge.
-    #[serde(with = "crate::serde_url_base64")]
+    #[serde(with = "crate::serde_base64")]
     pub challenge: Vec<u8>,
     /// The identity associated with the challenge.
-    #[serde(with = "crate::maybe_serde_url_base64")]
+    #[serde(with = "crate::maybe_serde_base64")]
     pub identity_id: Option<Vec<u8>>,
     /// When the challenge was issued.
     pub issued: SqlTimestamp,

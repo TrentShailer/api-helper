@@ -48,7 +48,7 @@ fn SignToken_EC_IsCorrect() {
 
     assert!(signing_key.key.public_eq(&verifying_key.key));
 
-    let (token, signature) = signing_key
+    let token = signing_key
         .issue(
             "subject".to_string(),
             TokenType::Consent {
@@ -56,13 +56,9 @@ fn SignToken_EC_IsCorrect() {
             },
         )
         .unwrap();
-    let header = token.header.encode().unwrap();
-    let claims = token.claims.encode().unwrap();
 
-    let decoded_jwt = verifying_key
-        .verify(&format!("{header}.{claims}.{signature}"))
-        .unwrap()
-        .unwrap();
+    let is_valid = verifying_key.verify(&token).unwrap();
 
-    assert!(!decoded_jwt.claims.is_expired());
+    assert!(is_valid);
+    assert!(!token.claims.is_expired());
 }
