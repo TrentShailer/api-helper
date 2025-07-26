@@ -7,6 +7,7 @@ use crate::webauthn::public_key_credential::{Algorithm, Transports};
 
 /// The public key details that the relying party should persist.
 #[derive(Debug, Deserialize, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct PersistedPublicKey {
     /// The raw ID of the public key.
     #[serde(with = "crate::serde_url_base64")]
