@@ -58,14 +58,14 @@ pub mod maybe_serde_base64 {
     }
 }
 
-/// Extension trait for encoding something as base64.
+/// Extension trait for encoding something as base-64.
 pub trait EncodeBase64 {
-    /// Encode the value has base64.
+    /// Encode the value has base-64.
     fn encode_base64(&self) -> String;
 }
-/// Extension trait for decoding something from base64.
+/// Extension trait for decoding something from base-64.
 pub trait DecodeBase64 {
-    /// Decode the value from base64.
+    /// Decode the value from base-64.
     fn decode_base64(&self) -> Result<Vec<u8>, base64ct::Error>;
 }
 

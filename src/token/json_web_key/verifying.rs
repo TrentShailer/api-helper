@@ -1,4 +1,4 @@
-//! A JWK used to verify a signed token.
+//! A JSON web key used to verify a signed token.
 use core::{error::Error, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -138,7 +138,7 @@ pub enum EcFromJwkError {
         source: openssl::error::ErrorStack,
     },
 
-    /// A coordinate failed base64 decoding.
+    /// A coordinate failed base-64 decoding.
     #[non_exhaustive]
     Base64DecodeCoordinate {
         /// The source of the error.

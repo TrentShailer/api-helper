@@ -8,16 +8,16 @@ use serde::{Deserialize, Serialize};
 /// A decoded JSON web token.
 #[derive(Debug, Clone)]
 pub struct JsonWebToken {
-    /// The JWT header.
+    /// The JSON web token header.
     pub header: Header,
-    /// The JWT claims.
+    /// The JSON web token claims.
     pub claims: Claims,
-    /// The JWS signature.
+    /// The JSON web token signature.
     pub signature: Vec<u8>,
 }
 
 impl JsonWebToken {
-    /// Serialize the token as a JWT string.
+    /// Serialize the token as a JSON web token string.
     pub fn serialize(&self) -> String {
         let header = self.header.encode();
         let claims = self.claims.encode();
@@ -26,7 +26,7 @@ impl JsonWebToken {
         format!("{header}.{claims}.{signature}")
     }
 
-    /// Deserialize the token from a JWT string.
+    /// Deserialize the token from a JSON web token string.
     pub fn deserialize(value: &str) -> Option<Self> {
         let mut parts = value.split(".");
         let header = parts.next()?;
@@ -45,7 +45,7 @@ impl JsonWebToken {
     }
 }
 
-/// The JWT header.
+/// The JSON web token header.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Header {
     /// The algorithm used to sign the JSON web token.
@@ -57,7 +57,7 @@ pub struct Header {
 }
 
 impl Header {
-    /// Encode the JSON representation of the header as URL Base64.
+    /// Encode the JSON representation of the header as URL base-64.
     pub fn encode(&self) -> String {
         let json = serde_json::to_vec(&self).expect("serializing the header should never fail");
         Base64UrlUnpadded::encode_string(&json)
@@ -108,7 +108,7 @@ pub enum Algorithm {
 }
 
 impl Claims {
-    /// Encode the JSON representation of the claims as URL base64.
+    /// Encode the JSON representation of the claims as URL base-64.
     pub fn encode(&self) -> String {
         let json = serde_json::to_vec(&self).expect("serializing the claims should never fail");
         Base64UrlUnpadded::encode_string(&json)

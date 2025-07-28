@@ -20,7 +20,7 @@ pub struct PersistedPublicKey {
     /// The user's display name for this public key.
     pub display_name: String,
 
-    /// The public key DER.
+    /// The public key in `DER` format.
     #[serde(with = "crate::serde_base64")]
     pub public_key: Vec<u8>,
 
@@ -32,7 +32,7 @@ pub struct PersistedPublicKey {
 
     /// The number of times the private key has been used to sign.
     /// This should be monotonic and each value should only appear once if the authenticator supports it.
-    /// Otherwise it should always be zero.
+    /// Otherwise, it should always be zero.
     pub signature_counter: i64,
 
     /// When this public key was created.

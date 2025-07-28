@@ -1,4 +1,4 @@
-//! Extractor for extracting and verifying the JWT token from the request.
+//! Extractor for extracting and verifying the JSON web token token from the request.
 use axum::extract::{FromRequestParts, OptionalFromRequestParts};
 use http::{StatusCode, request::Parts};
 

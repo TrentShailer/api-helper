@@ -4,7 +4,7 @@ use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
-/// Type alias for a NoTLS Postgres connection pool.
+/// Type alias for a `NoTLS` Postgres connection pool.
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
 /// Setup a connection pool for PostgreSQL.
@@ -27,7 +27,7 @@ pub async fn setup_connection_pool<S: ToString>(
 
 #[derive(Debug)]
 #[non_exhaustive]
-/// Error kinds for setting up postgres.
+/// Error kinds for setting up Postgres.
 pub enum SetupPostgresError {
     #[non_exhaustive]
     /// The pool could not be built.

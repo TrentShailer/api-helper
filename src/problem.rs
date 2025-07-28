@@ -11,7 +11,7 @@ pub trait InlineErrorResponse<T> {
     #[track_caller]
     fn internal_server_error(self) -> Result<T, ErrorResponse>;
 
-    /// Mark the error as caused by something unprocessable.
+    /// Mark the error as caused by something that couldn't be processed.
     #[track_caller]
     fn unprocessable_entity(self) -> Result<T, ErrorResponse>;
 
@@ -131,7 +131,7 @@ impl ErrorResponse {
         }
     }
 
-    /// Convenience function for an unprocessable entity response.
+    /// Convenience function for when part of the request was not able to be processed.
     #[track_caller]
     pub fn unprocessable_entity() -> Self {
         log::warn!("[{}] request was unprocessable", Location::caller());
