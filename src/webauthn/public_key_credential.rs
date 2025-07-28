@@ -188,7 +188,7 @@ impl Algorithm {
         match &self {
             Self::ED448 => Id::ED448,
             Self::ED25519 => Id::ED25519,
-            Self::EdDSA => Id::DSA, // TODO
+            Self::EdDSA => Id::DSA,
 
             Self::ES512
             | Self::ES384
