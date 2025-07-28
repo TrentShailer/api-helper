@@ -63,7 +63,7 @@ impl<'de> Deserialize<'de> for AuthenticatorData {
 
         let mut signature_counter_bytes = [0u8; 4];
         signature_counter_bytes.copy_from_slice(&bytes[33..37]);
-        let signature_counter = u32::from_le_bytes(signature_counter_bytes); // TODO LE or BE
+        let signature_counter = u32::from_be_bytes(signature_counter_bytes);
 
         Ok(Self {
             relying_party_id_hash,
