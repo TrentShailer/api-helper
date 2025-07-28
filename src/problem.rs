@@ -5,28 +5,70 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use ts_rust_helper::error::{ErrorLogger, IntoErrorReport};
 
-/// Trait for providing convenience functions to mark an error as an internal server error.
-pub trait InternalServerError<T> {
+/// Trait for providing convenience functions to mark an error as a given type.
+pub trait InlineErrorResponse<T> {
     /// Mark the error as an internal server error.
     #[track_caller]
     fn internal_server_error(self) -> Result<T, ErrorResponse>;
+
+    /// Mark the error as caused by something unprocessable.
+    #[track_caller]
+    fn unprocessable_entity(self) -> Result<T, ErrorResponse>;
+
+    /// Mark the error as caused because the request was unauthenticated.
+    #[track_caller]
+    fn unauthenticated(self) -> Result<T, ErrorResponse>;
+
+    /// Mark the error as caused because the subject is forbidden.
+    #[track_caller]
+    fn forbidden(self) -> Result<T, ErrorResponse>;
 }
 
-impl<T, E: Error> InternalServerError<T> for Result<T, E> {
+impl<T, E: Error> InlineErrorResponse<T> for Result<T, E> {
     #[track_caller]
     fn internal_server_error(self) -> Result<T, ErrorResponse> {
         self.into_report()
             .log_error()
             .map_err(|_| ErrorResponse::internal_server_error())
     }
+
+    #[track_caller]
+    fn unprocessable_entity(self) -> Result<T, ErrorResponse> {
+        self.map_err(|_| ErrorResponse::unprocessable_entity())
+    }
+
+    #[track_caller]
+    fn unauthenticated(self) -> Result<T, ErrorResponse> {
+        self.map_err(|_| ErrorResponse::unauthenticated())
+    }
+
+    #[track_caller]
+    fn forbidden(self) -> Result<T, ErrorResponse> {
+        self.map_err(|_| ErrorResponse::forbidden())
+    }
 }
 
-impl<T> InternalServerError<T> for Option<T> {
+impl<T> InlineErrorResponse<T> for Option<T> {
     #[track_caller]
     fn internal_server_error(self) -> Result<T, ErrorResponse> {
         self.into_report()
             .log_error()
             .map_err(|_| ErrorResponse::internal_server_error())
+    }
+
+    #[track_caller]
+    fn unprocessable_entity(self) -> Result<T, ErrorResponse> {
+        self.ok_or_else(ErrorResponse::unprocessable_entity)
+    }
+
+    #[track_caller]
+    fn unauthenticated(self) -> Result<T, ErrorResponse> {
+        self.ok_or_else(ErrorResponse::unauthenticated)
+    }
+
+    #[track_caller]
+    fn forbidden(self) -> Result<T, ErrorResponse> {
+        self.ok_or_else(ErrorResponse::unprocessable_entity)
     }
 }
 

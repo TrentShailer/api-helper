@@ -3,7 +3,7 @@ use axum::extract::{FromRequestParts, OptionalFromRequestParts};
 use http::{StatusCode, request::Parts};
 
 use crate::{
-    ErrorResponse, HasHttpClient, InternalServerError,
+    ErrorResponse, HasHttpClient, InlineErrorResponse,
     token::{JsonWebKeySetCache, JsonWebToken},
 };
 
